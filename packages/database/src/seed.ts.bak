@@ -1,0 +1,776 @@
+// Database seed data for development and testing
+
+import { db } from './index'
+import type { PriceType } from './generated'
+
+// ============================================================================
+// SAMPLE DATA
+// ============================================================================
+
+const sampleVenues = [
+  {
+    name: "Blues Central Studio",
+    address: "123 Main Street",
+    city: "San Francisco",
+    state: "CA",
+    country: "USA",
+    postalCode: "94102",
+    latitude: 37.7749,
+    longitude: -122.4194,
+    website: "https://bluescentral.com",
+    capacity: 150,
+    hasParking: true,
+    hasAirCon: true,
+    hasWifi: true,
+    wheelchairAccess: true,
+    description: "Premier blues dance studio in the heart of San Francisco with state-of-the-art sound system."
+  },
+  {
+    name: "Jazz & Blues Hall",
+    address: "456 Music Avenue",
+    city: "New Orleans",
+    state: "LA",
+    country: "USA",
+    postalCode: "70112",
+    latitude: 29.9511,
+    longitude: -90.0715,
+    website: "https://jazzblues.nola.com",
+    capacity: 300,
+    hasParking: false,
+    hasAirCon: true,
+    hasWifi: true,
+    wheelchairAccess: true,
+    description: "Historic venue in the French Quarter, perfect for authentic blues experiences."
+  },
+  {
+    name: "London Blues Academy",
+    address: "789 Dance Street",
+    city: "London",
+    country: "UK",
+    postalCode: "SW1A 1AA",
+    latitude: 51.5074,
+    longitude: -0.1278,
+    website: "https://londonblues.co.uk",
+    capacity: 200,
+    hasParking: false,
+    hasAirCon: false,
+    hasWifi: true,
+    wheelchairAccess: true,
+    description: "Elegant dance academy in central London with professional sprung floors."
+  },
+  {
+    name: "Chicago Blues Society",
+    address: "321 Blues Boulevard",
+    city: "Chicago",
+    state: "IL",
+    country: "USA",
+    postalCode: "60601",
+    latitude: 41.8781,
+    longitude: -87.6298,
+    website: "https://chicagoblues.org",
+    capacity: 250,
+    hasParking: true,
+    hasAirCon: true,
+    hasWifi: true,
+    wheelchairAccess: true,
+    description: "Home of Chicago blues with authentic atmosphere and live music heritage."
+  },
+  {
+    name: "Berlin Dance Loft",
+    address: "Tanzen Straße 42",
+    city: "Berlin",
+    country: "Germany",
+    postalCode: "10115",
+    latitude: 52.5200,
+    longitude: 13.4050,
+    website: "https://berlindance.de",
+    capacity: 180,
+    hasParking: false,
+    hasAirCon: false,
+    hasWifi: true,
+    wheelchairAccess: false,
+    description: "Industrial loft space converted to modern dance venue in trendy Mitte district."
+  },
+  {
+    name: "Melbourne Blues Centre",
+    address: "88 Collins Street",
+    city: "Melbourne",
+    state: "VIC",
+    country: "Australia",
+    postalCode: "3000",
+    latitude: -37.8136,
+    longitude: 144.9631,
+    website: "https://melbourneblues.com.au",
+    capacity: 160,
+    hasParking: true,
+    hasAirCon: true,
+    hasWifi: true,
+    wheelchairAccess: true,
+    description: "Modern blues venue with panoramic city views and excellent sound system."
+  }
+]
+
+const sampleTeachers = [
+  {
+    name: "Sarah Mitchell",
+    slug: "sarah-mitchell",
+    bio: "International blues dance instructor with over 15 years of experience. Specializes in authentic blues movement and connection. Based in San Francisco, she has taught at major festivals worldwide.",
+    website: "https://sarahmitchell.dance",
+    yearsActive: 15,
+    verified: true,
+    specialties: ["Authentic Blues", "Slow Blues", "Connection", "Partner Awareness"],
+    socialMedia: {
+      facebook: "https://facebook.com/sarahmitchellblues",
+      instagram: "https://instagram.com/sarahmitchell_dance",
+      youtube: "https://youtube.com/sarahmitchell"
+    }
+  },
+  {
+    name: "Marcus Johnson",
+    slug: "marcus-johnson",
+    bio: "Award-winning blues dancer and teacher from Chicago. Known for his smooth style and technical precision. Multiple-time winner of national blues competitions.",
+    website: "https://marcusjohnson.dance",
+    yearsActive: 12,
+    verified: true,
+    specialties: ["Chicago Blues", "Fast Blues", "Technique", "Competition Prep"],
+    socialMedia: {
+      facebook: "https://facebook.com/marcusjohnsonblues",
+      instagram: "https://instagram.com/marcus_blues"
+    }
+  },
+  {
+    name: "Elena Rodriguez",
+    slug: "elena-rodriguez",
+    bio: "Contemporary blues fusion specialist bringing modern elements to traditional blues dance. Known for innovative choreography and creative workshops.",
+    yearsActive: 8,
+    verified: false,
+    specialties: ["Blues Fusion", "Contemporary Blues", "Partner Work", "Creative Movement"],
+    socialMedia: {
+      instagram: "https://instagram.com/elena_bluesfusion",
+      tiktok: "https://tiktok.com/@elena_blues"
+    }
+  },
+  {
+    name: "David Thompson",
+    slug: "david-thompson",
+    bio: "London-based blues instructor and event organizer. Pioneer of the European blues scene with traditional Mississippi Delta influences.",
+    website: "https://davidthompsonblues.co.uk",
+    yearsActive: 20,
+    verified: true,
+    specialties: ["Delta Blues", "Traditional Blues", "Mississippi Style", "Musicality"],
+    socialMedia: {
+      facebook: "https://facebook.com/davidthompsonblues",
+      youtube: "https://youtube.com/davidthompsonblues"
+    }
+  },
+  {
+    name: "Yuki Tanaka",
+    slug: "yuki-tanaka",
+    bio: "Japanese blues sensation who bridges Eastern and Western dance traditions. Known for precise technique and emotional expression.",
+    yearsActive: 6,
+    verified: false,
+    specialties: ["East-West Fusion", "Emotional Expression", "Precision Technique"],
+    socialMedia: {
+      instagram: "https://instagram.com/yuki_blues_tokyo",
+      youtube: "https://youtube.com/yukitanakablues"
+    }
+  },
+  {
+    name: "Ana Silva",
+    slug: "ana-silva",
+    bio: "Brazilian blues teacher bringing Latin influences to traditional blues. Expert in cross-cultural dance fusion and body movement.",
+    yearsActive: 10,
+    verified: true,
+    specialties: ["Latin Blues", "Body Movement", "Cultural Fusion", "Solo Blues"],
+    socialMedia: {
+      instagram: "https://instagram.com/ana_silva_blues",
+      facebook: "https://facebook.com/anasilva.blues"
+    }
+  }
+]
+
+const sampleMusicians = [
+  {
+    name: "Delta Kings",
+    slug: "delta-kings",
+    bio: "Traditional blues band bringing authentic Delta sound to dance floors worldwide. Four-piece ensemble with over 20 years combined experience.",
+    genres: ["Delta Blues", "Traditional Blues", "Acoustic Blues"],
+    instruments: ["Guitar", "Harmonica", "Bass", "Drums"],
+    yearsActive: 8,
+    verified: true,
+    socialMedia: {
+      facebook: "https://facebook.com/deltakingsband",
+      spotify: "https://spotify.com/artist/deltakings",
+      bandcamp: "https://deltakings.bandcamp.com"
+    }
+  },
+  {
+    name: "Midnight Express",
+    slug: "midnight-express",
+    bio: "High-energy blues band perfect for fast dancing and late-night sessions. Known for their electrifying live performances and dance-friendly arrangements.",
+    genres: ["Electric Blues", "Chicago Blues", "Jump Blues"],
+    instruments: ["Electric Guitar", "Bass", "Drums", "Keyboard"],
+    yearsActive: 12,
+    verified: true,
+    socialMedia: {
+      instagram: "https://instagram.com/midnightexpress_blues",
+      soundcloud: "https://soundcloud.com/midnightexpress",
+      facebook: "https://facebook.com/midnightexpressband"
+    }
+  },
+  {
+    name: "Sofia Blues",
+    slug: "sofia-blues",
+    bio: "Solo artist and DJ specializing in blues music for social dancing. Curator of the perfect blues dance experience with extensive vinyl collection.",
+    genres: ["Contemporary Blues", "Blues Mix", "DJ Sets"],
+    instruments: ["DJ Setup", "Vocals"],
+    yearsActive: 5,
+    verified: false,
+    socialMedia: {
+      instagram: "https://instagram.com/sofia_blues_dj",
+      youtube: "https://youtube.com/sofiablues",
+      soundcloud: "https://soundcloud.com/sofia-blues"
+    }
+  },
+  {
+    name: "London Blues Collective",
+    slug: "london-blues-collective",
+    bio: "Rotating ensemble of London's finest blues musicians. Each performance features different combinations creating unique musical experiences.",
+    genres: ["British Blues", "Traditional Blues", "Contemporary Blues"],
+    instruments: ["Guitar", "Piano", "Harmonica", "Saxophone", "Drums", "Bass"],
+    yearsActive: 15,
+    verified: true,
+    socialMedia: {
+      facebook: "https://facebook.com/londonbluescollective",
+      instagram: "https://instagram.com/london_blues_collective",
+      youtube: "https://youtube.com/londonbluescollective"
+    }
+  },
+  {
+    name: "Rusty Johnson Trio",
+    slug: "rusty-johnson-trio",
+    bio: "Classic blues trio led by harmonica virtuoso Rusty Johnson. Known for intimate performances and exceptional musicianship.",
+    genres: ["Classic Blues", "Harmonica Blues", "Traditional"],
+    instruments: ["Harmonica", "Guitar", "Upright Bass"],
+    yearsActive: 25,
+    verified: true,
+    socialMedia: {
+      facebook: "https://facebook.com/rustyjohnsontrio",
+      spotify: "https://spotify.com/artist/rustyjohnsontrio"
+    }
+  },
+  {
+    name: "Electric Storm",
+    slug: "electric-storm",
+    bio: "Modern electric blues band with rock influences. Perfect for high-energy dancing and contemporary blues fusion.",
+    genres: ["Modern Blues", "Blues Rock", "Electric Blues"],
+    instruments: ["Electric Guitar", "Bass Guitar", "Drums", "Keyboard"],
+    yearsActive: 7,
+    verified: false,
+    socialMedia: {
+      instagram: "https://instagram.com/electricstorm_blues",
+      youtube: "https://youtube.com/electricstormband",
+      spotify: "https://spotify.com/artist/electricstorm"
+    }
+  }
+]
+
+// ============================================================================
+// SEED FUNCTIONS
+// ============================================================================
+
+export async function seedVenues() {
+  console.log('Seeding venues...')
+  
+  const venues = await Promise.all(
+    sampleVenues.map(venue =>
+      db.venue.upsert({
+        where: { name_city_country: { name: venue.name, city: venue.city, country: venue.country } },
+        update: venue,
+        create: venue
+      })
+    )
+  )
+  
+  console.log(`Created ${venues.length} venues`)
+  return venues
+}
+
+export async function seedTeachers() {
+  console.log('Seeding teachers...')
+  
+  const teachers = await Promise.all(
+    sampleTeachers.map(async teacher => {
+      const { specialties, socialMedia, ...teacherData } = teacher
+      
+      return db.teacher.upsert({
+        where: { slug: teacher.slug },
+        update: teacherData,
+        create: {
+          ...teacherData,
+          specialties: {
+            create: specialties.map(specialty => ({ specialty }))
+          },
+          socialMedia: {
+            create: socialMedia
+          }
+        }
+      })
+    })
+  )
+  
+  console.log(`Created ${teachers.length} teachers`)
+  return teachers
+}
+
+export async function seedMusicians() {
+  console.log('Seeding musicians...')
+  
+  const musicians = await Promise.all(
+    sampleMusicians.map(async musician => {
+      const { genres, socialMedia, ...musicianData } = musician
+      
+      return db.musician.upsert({
+        where: { slug: musician.slug },
+        update: musicianData,
+        create: {
+          ...musicianData,
+          genres: {
+            create: genres.map(genre => ({ genre }))
+          },
+          socialMedia: {
+            create: socialMedia
+          }
+        }
+      })
+    })
+  )
+  
+  console.log(`Created ${musicians.length} musicians`)
+  return musicians
+}
+
+export async function seedEvents(venues: any[], teachers: any[], musicians: any[]) {
+  console.log('Seeding events...')
+  
+  const events = [
+    {
+      name: "San Francisco Blues Weekend",
+      description: "Three days of intensive blues dancing with world-class instructors and live music. Experience the vibrant SF blues scene with workshops, social dancing, and performances in the iconic Blues Central Studio.",
+      shortDesc: "Intensive blues weekend in beautiful San Francisco",
+      startDate: new Date('2024-06-15T19:00:00Z'),
+      endDate: new Date('2024-06-17T23:00:00Z'),
+      registrationDeadline: new Date('2024-06-10T23:59:59Z'),
+      venueId: venues[0].id,
+      website: "https://sfbluesweekend.com",
+      registrationUrl: "https://sfbluesweekend.com/register",
+      status: 'PUBLISHED' as const,
+      featured: true,
+      capacity: 120,
+      tags: ["Weekend Workshop", "Live Music", "International", "Social Dancing"],
+      teachers: [teachers[0].id, teachers[1].id],
+      musicians: [musicians[0].id, musicians[4].id],
+      prices: [
+        { type: 'EARLY_BIRD' as PriceType, amount: 180, deadline: new Date('2024-05-15') },
+        { type: 'REGULAR' as PriceType, amount: 220 },
+        { type: 'STUDENT' as PriceType, amount: 150, description: "Valid student ID required" }
+      ]
+    },
+    {
+      name: "New Orleans Blues Exchange",
+      description: "Experience authentic blues in the birthplace of jazz. Four days of workshops, social dancing, and incredible music in the historic French Quarter. Includes live performances, cultural tours, and authentic Creole cuisine.",
+      shortDesc: "Authentic blues experience in New Orleans",
+      startDate: new Date('2024-07-20T18:00:00Z'),
+      endDate: new Date('2024-07-23T23:00:00Z'),
+      registrationDeadline: new Date('2024-07-15T23:59:59Z'),
+      venueId: venues[1].id,
+      website: "https://nolabluesexchange.com",
+      registrationUrl: "https://nolabluesexchange.com/register",
+      status: 'PUBLISHED' as const,
+      featured: true,
+      capacity: 200,
+      tags: ["Exchange", "Authentic Blues", "Cultural", "Historic"],
+      teachers: [teachers[1].id, teachers[2].id, teachers[5].id],
+      musicians: [musicians[1].id, musicians[2].id],
+      prices: [
+        { type: 'EARLY_BIRD' as PriceType, amount: 200, deadline: new Date('2024-06-20') },
+        { type: 'REGULAR' as PriceType, amount: 250 },
+        { type: 'LOCAL' as PriceType, amount: 180, description: "Louisiana residents only" }
+      ]
+    },
+    {
+      name: "London Blues Intensive",
+      description: "A weekend of blues dance workshops and social dancing in the heart of London. Features traditional British blues influences and contemporary international styles.",
+      shortDesc: "Blues intensive weekend in London",
+      startDate: new Date('2024-08-10T14:00:00Z'),
+      endDate: new Date('2024-08-12T22:00:00Z'),
+      registrationDeadline: new Date('2024-08-05T23:59:59Z'),
+      venueId: venues[2].id,
+      website: "https://londonbluesintensive.co.uk",
+      registrationUrl: "https://londonbluesintensive.co.uk/register",
+      status: 'PUBLISHED' as const,
+      featured: false,
+      capacity: 150,
+      tags: ["Intensive", "International", "Weekend", "Traditional"],
+      teachers: [teachers[0].id, teachers[3].id],
+      musicians: [musicians[2].id, musicians[3].id],
+      prices: [
+        { type: 'EARLY_BIRD' as PriceType, amount: 120, currency: 'GBP', deadline: new Date('2024-07-10') },
+        { type: 'REGULAR' as PriceType, amount: 150, currency: 'GBP' },
+        { type: 'STUDENT' as PriceType, amount: 100, currency: 'GBP', description: "Student discount available" }
+      ]
+    },
+    {
+      name: "Chicago Blues Summit",
+      description: "The ultimate Chicago blues experience! Five days of intensive training with Chicago's finest instructors and musicians. Includes visits to historic blues clubs and exclusive jam sessions.",
+      shortDesc: "Premier Chicago blues summit with historic club visits",
+      startDate: new Date('2024-09-05T16:00:00Z'),
+      endDate: new Date('2024-09-09T23:00:00Z'),
+      registrationDeadline: new Date('2024-08-25T23:59:59Z'),
+      venueId: venues[3].id,
+      website: "https://chicagobluessummit.com",
+      registrationUrl: "https://chicagobluessummit.com/register",
+      status: 'PUBLISHED' as const,
+      featured: true,
+      capacity: 180,
+      tags: ["Summit", "Chicago Style", "Historic", "Professional", "Club Visits"],
+      teachers: [teachers[1].id, teachers[3].id, teachers[5].id],
+      musicians: [musicians[1].id, musicians[4].id],
+      prices: [
+        { type: 'EARLY_BIRD' as PriceType, amount: 280, deadline: new Date('2024-07-05') },
+        { type: 'REGULAR' as PriceType, amount: 350 },
+        { type: 'VIP' as PriceType, amount: 450, description: "Includes private sessions and exclusive club access" }
+      ]
+    },
+    {
+      name: "Berlin Blues Fusion Festival",
+      description: "Contemporary blues meets European innovation. Three days of fusion workshops, experimental music, and avant-garde performances in Berlin's creative scene.",
+      shortDesc: "Innovative blues fusion festival in Berlin",
+      startDate: new Date('2024-10-18T18:00:00Z'),
+      endDate: new Date('2024-10-20T23:00:00Z'),
+      registrationDeadline: new Date('2024-10-10T23:59:59Z'),
+      venueId: venues[4].id,
+      website: "https://berlinbluesfusion.de",
+      registrationUrl: "https://berlinbluesfusion.de/anmeldung",
+      status: 'PUBLISHED' as const,
+      featured: true,
+      capacity: 140,
+      tags: ["Fusion", "Contemporary", "Experimental", "European", "Innovation"],
+      teachers: [teachers[2].id, teachers[4].id],
+      musicians: [musicians[5].id, musicians[2].id],
+      prices: [
+        { type: 'EARLY_BIRD' as PriceType, amount: 160, currency: 'EUR', deadline: new Date('2024-09-18') },
+        { type: 'REGULAR' as PriceType, amount: 200, currency: 'EUR' },
+        { type: 'STUDENT' as PriceType, amount: 120, currency: 'EUR', description: "Valid student ID required" }
+      ]
+    },
+    {
+      name: "Melbourne Blues Down Under",
+      description: "Southern Hemisphere's premier blues event! Experience Australian blues culture with international flair. Features workshops, social dancing, and BBQ events with stunning city views.",
+      shortDesc: "Premier blues festival in Melbourne with city views",
+      startDate: new Date('2024-11-22T17:00:00Z'),
+      endDate: new Date('2024-11-25T22:00:00Z'),
+      registrationDeadline: new Date('2024-11-15T23:59:59Z'),
+      venueId: venues[5].id,
+      website: "https://melbourneblues.com.au",
+      registrationUrl: "https://melbourneblues.com.au/register",
+      status: 'PUBLISHED' as const,
+      featured: false,
+      capacity: 130,
+      tags: ["International", "Southern Hemisphere", "BBQ Events", "City Views"],
+      teachers: [teachers[0].id, teachers[4].id, teachers[5].id],
+      musicians: [musicians[0].id, musicians[3].id],
+      prices: [
+        { type: 'EARLY_BIRD' as PriceType, amount: 240, currency: 'AUD', deadline: new Date('2024-10-22') },
+        { type: 'REGULAR' as PriceType, amount: 300, currency: 'AUD' },
+        { type: 'LOCAL' as PriceType, amount: 220, currency: 'AUD', description: "Australian residents only" }
+      ]
+    },
+    {
+      name: "Blues Beginner Bootcamp - SF",
+      description: "Perfect introduction to blues dancing! Two-day intensive for complete beginners. Small class sizes ensure personal attention and rapid progress.",
+      shortDesc: "Beginner-friendly blues bootcamp in San Francisco",
+      startDate: new Date('2024-08-24T10:00:00Z'),
+      endDate: new Date('2024-08-25T18:00:00Z'),
+      registrationDeadline: new Date('2024-08-20T23:59:59Z'),
+      venueId: venues[0].id,
+      website: "https://sfbluesbeginners.com",
+      registrationUrl: "https://sfbluesbeginners.com/register",
+      status: 'PUBLISHED' as const,
+      featured: false,
+      capacity: 30,
+      tags: ["Beginner", "Bootcamp", "Small Groups", "Intensive"],
+      teachers: [teachers[0].id],
+      musicians: [musicians[2].id],
+      prices: [
+        { type: 'REGULAR' as PriceType, amount: 120 },
+        { type: 'STUDENT' as PriceType, amount: 90, description: "Student discount with valid ID" }
+      ]
+    },
+    {
+      name: "Virtual Blues Workshop Series",
+      description: "Join us online for a series of virtual blues workshops! Learn from home with interactive sessions, recorded content, and global community participation.",
+      shortDesc: "Online blues workshop series with global participation",
+      startDate: new Date('2024-07-01T19:00:00Z'),
+      endDate: new Date('2024-07-31T21:00:00Z'),
+      registrationDeadline: new Date('2024-06-25T23:59:59Z'),
+      venueId: venues[0].id, // Using SF as base venue for virtual event
+      website: "https://virtualblues.dance",
+      registrationUrl: "https://virtualblues.dance/register",
+      status: 'PUBLISHED' as const,
+      featured: false,
+      capacity: 500,
+      tags: ["Virtual", "Online", "Global", "Flexible Schedule", "Recorded Content"],
+      teachers: [teachers[1].id, teachers[2].id, teachers[3].id],
+      musicians: [musicians[2].id],
+      prices: [
+        { type: 'EARLY_BIRD' as PriceType, amount: 50, deadline: new Date('2024-06-15') },
+        { type: 'REGULAR' as PriceType, amount: 75 }
+      ]
+    }
+  ]
+  
+  const createdEvents = await Promise.all(
+    events.map(async event => {
+      const { tags, teachers: eventTeachers, musicians: eventMusicians, prices, ...eventData } = event
+      
+      const slug = event.name.toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, '')
+        .replace(/\s+/g, '-')
+        .replace(/-+/g, '-')
+        .trim()
+      
+      return db.event.upsert({
+        where: { slug },
+        update: eventData,
+        create: {
+          ...eventData,
+          slug,
+          tags: {
+            create: tags.map(tag => ({ tag }))
+          },
+          teachers: {
+            create: eventTeachers.map(teacherId => ({ teacherId }))
+          },
+          musicians: {
+            create: eventMusicians.map(musicianId => ({ musicianId }))
+          },
+          prices: {
+            create: prices.map(price => ({
+              type: price.type,
+              amount: price.amount,
+              deadline: price.deadline,
+              description: price.description
+            }))
+          }
+        }
+      })
+    })
+  )
+  
+  console.log(`Created ${createdEvents.length} events`)
+  return createdEvents
+}
+
+export async function seedTestUsers() {
+  console.log('Seeding test users...')
+  
+  const testUsers = [
+    {
+      email: 'admin@festivalscout.com',
+      name: 'Festival Scout Admin',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face',
+      verified: true,
+      preferences: {
+        emailNotifications: true,
+        pushNotifications: true,
+        newEventNotifications: true,
+        deadlineReminders: true,
+        weeklyDigest: true,
+        followingUpdates: true,
+        defaultCountry: 'US',
+        defaultCity: 'San Francisco',
+        searchRadius: 100,
+        theme: 'dark' as const,
+        language: 'en'
+      }
+    },
+    {
+      email: 'user@example.com',
+      name: 'Regular User',
+      avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
+      verified: false,
+      preferences: {
+        emailNotifications: true,
+        pushNotifications: false,
+        newEventNotifications: true,
+        deadlineReminders: true,
+        weeklyDigest: false,
+        followingUpdates: true,
+        defaultCountry: 'US',
+        defaultCity: 'New York',
+        searchRadius: 50,
+        theme: 'light' as const,
+        language: 'en'
+      }
+    },
+    {
+      email: 'dancer@blues.uk',
+      name: 'Emma Thompson',
+      avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face',
+      verified: true,
+      preferences: {
+        emailNotifications: true,
+        pushNotifications: true,
+        newEventNotifications: true,
+        deadlineReminders: true,
+        weeklyDigest: true,
+        followingUpdates: true,
+        defaultCountry: 'GB',
+        defaultCity: 'London',
+        searchRadius: 200,
+        theme: 'light' as const,
+        language: 'en'
+      }
+    }
+  ]
+  
+  const users = await Promise.all(
+    testUsers.map(userData => {
+      const { preferences, ...userInfo } = userData
+      return db.user.upsert({
+        where: { email: userData.email },
+        update: userInfo,
+        create: {
+          ...userInfo,
+          preferences: {
+            create: preferences
+          }
+        }
+      })
+    })
+  )
+  
+  console.log(`Created ${users.length} test users`)
+  return users
+}
+
+// ============================================================================
+// MAIN SEED FUNCTION
+// ============================================================================
+
+export async function seedDatabase(includeTestScenarios = false) {
+  try {
+    console.log('🌱 Starting database seed...')
+    
+    // Clear existing data (for development only)
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Clearing existing data...')
+      await db.eventTeacher.deleteMany()
+      await db.eventMusician.deleteMany()
+      await db.eventPrice.deleteMany()
+      await db.eventTag.deleteMany()
+      await db.following.deleteMany()
+      await db.teacherSpecialty.deleteMany()
+      await db.musicianGenre.deleteMany()
+      await db.teacherSocialMedia.deleteMany()
+      await db.musicianSocialMedia.deleteMany()
+      await db.userPreferences.deleteMany()
+      await db.event.deleteMany()
+      await db.teacher.deleteMany()
+      await db.musician.deleteMany()
+      await db.venue.deleteMany()
+      await db.user.deleteMany()
+    }
+    
+    // Seed core data
+    const venues = await seedVenues()
+    const teachers = await seedTeachers()
+    const musicians = await seedMusicians()
+    const events = await seedEvents(venues, teachers, musicians)
+    const users = await seedTestUsers()
+    
+    // Create following relationships for test users
+    const followingData = [
+      // Admin user follows several teachers and musicians
+      { userId: users[0].id, targetType: 'TEACHER' as const, targetId: teachers[0].id },
+      { userId: users[0].id, targetType: 'TEACHER' as const, targetId: teachers[1].id },
+      { userId: users[0].id, targetType: 'TEACHER' as const, targetId: teachers[3].id },
+      { userId: users[0].id, targetType: 'MUSICIAN' as const, targetId: musicians[0].id },
+      { userId: users[0].id, targetType: 'MUSICIAN' as const, targetId: musicians[1].id },
+      
+      // Regular user follows some teachers
+      { userId: users[1].id, targetType: 'TEACHER' as const, targetId: teachers[0].id },
+      { userId: users[1].id, targetType: 'TEACHER' as const, targetId: teachers[2].id },
+      { userId: users[1].id, targetType: 'MUSICIAN' as const, targetId: musicians[2].id },
+      
+      // UK user follows UK and international teachers
+      { userId: users[2].id, targetType: 'TEACHER' as const, targetId: teachers[3].id },
+      { userId: users[2].id, targetType: 'TEACHER' as const, targetId: teachers[0].id },
+      { userId: users[2].id, targetType: 'MUSICIAN' as const, targetId: musicians[3].id }
+    ]
+    
+    await db.following.createMany({ data: followingData })
+    
+    // Update follower counts based on actual following relationships
+    const teacherFollowCounts = new Map()
+    const musicianFollowCounts = new Map()
+    
+    followingData.forEach(follow => {
+      if (follow.targetType === 'TEACHER') {
+        teacherFollowCounts.set(follow.targetId, (teacherFollowCounts.get(follow.targetId) || 0) + 1)
+      } else {
+        musicianFollowCounts.set(follow.targetId, (musicianFollowCounts.get(follow.targetId) || 0) + 1)
+      }
+    })
+    
+    // Update teacher follower counts
+    for (const [teacherId, count] of teacherFollowCounts) {
+      await db.teacher.update({
+        where: { id: teacherId },
+        data: { followerCount: count }
+      })
+    }
+    
+    // Update musician follower counts
+    for (const [musicianId, count] of musicianFollowCounts) {
+      await db.musician.update({
+        where: { id: musicianId },
+        data: { followerCount: count }
+      })
+    }
+    
+    // Optionally include test scenarios
+    if (includeTestScenarios) {
+      const { setupTestScenarios } = await import('./test-data')
+      await setupTestScenarios()
+    }
+    
+    console.log('✅ Database seeded successfully!')
+    console.log({
+      venues: venues.length,
+      teachers: teachers.length,
+      musicians: musicians.length,
+      events: events.length,
+      users: users.length,
+      testScenarios: includeTestScenarios ? 'included' : 'skipped'
+    })
+    
+  } catch (error) {
+    console.error('❌ Error seeding database:', error)
+    throw error
+  }
+}
+
+// Run seed if called directly
+if (require.main === module) {
+  seedDatabase()
+    .then(() => {
+      console.log('Seed completed')
+      process.exit(0)
+    })
+    .catch((error) => {
+      console.error('Seed failed:', error)
+      process.exit(1)
+    })
+}

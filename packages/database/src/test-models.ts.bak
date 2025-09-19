@@ -1,0 +1,435 @@
+// Comprehensive tests for enhanced database models
+// This file tests all business logic and validation
+
+import { Models } from './models'
+import { db } from './index'
+
+async function testUserModel() {
+  console.log('🧪 Testing User Model...')
+  
+  try {
+    // Test user creation with validation
+    const newUser = await Models.User.create({
+      email: 'test.user@example.com',
+      name: 'Test User Enhanced',
+      avatar: 'https://example.com/avatar.jpg',
+      verified: false
+    })
+    console.log('   ✅ User created with preferences:', newUser.name)
+    
+    // Test duplicate email validation
+    try {
+      await Models.User.create({
+        email: 'test.user@example.com',
+        name: 'Duplicate User',
+        verified: false
+      })
+      console.log('   ❌ Should have thrown duplicate email error')
+    } catch (error) {
+      console.log('   ✅ Duplicate email correctly rejected')
+    }
+    
+    // Test user update
+    const updatedUser = await Models.User.update(newUser.id, {
+      name: 'Updated Test User'
+    })
+    console.log('   ✅ User updated:', updatedUser.name)
+    
+    // Test user retrieval
+    const foundUser = await Models.User.findById(newUser.id, true)
+    console.log('   ✅ User found with relations:', foundUser?.name)
+    
+    // Cleanup
+    await Models.User.delete(newUser.id)
+    console.log('   ✅ User deleted successfully')
+    
+  } catch (error) {
+    console.error('   ❌ User model test failed:', error instanceof Error ? error.message : 'Unknown error')
+    throw error
+  }
+}
+
+async function testVenueModel() {
+  console.log('🧪 Testing Venue Model...')
+  
+  try {
+    // Test venue creation with validation
+    const newVenue = await Models.Venue.create({
+      name: 'Test Venue Enhanced',
+      address: '123 Test Street',
+      city: 'Test City',
+      country: 'Test Country',
+      latitude: 40.7128,
+      longitude: -74.0060,
+      hasParking: true,
+      hasAirCon: true,
+      hasWifi: true,
+      wheelchairAccess: true,
+      capacity: 200
+    })
+    console.log('   ✅ Venue created:', newVenue.name)
+    
+    // Test invalid coordinates
+    try {
+      await Models.Venue.create({
+        name: 'Invalid Venue',
+        address: '456 Invalid Street',
+        city: 'Invalid City',
+        country: 'Invalid Country',
+        latitude: 91, // Invalid latitude
+        longitude: -74.0060,
+        hasParking: false,
+        hasAirCon: false,
+        hasWifi: false,
+        wheelchairAccess: false
+      })
+      console.log('   ❌ Should have thrown invalid coordinates error')
+    } catch (error) {
+      console.log('   ✅ Invalid coordinates correctly rejected')
+    }
+    
+    // Test duplicate venue validation
+    try {
+      await Models.Venue.create({
+        name: 'Test Venue Enhanced',
+        address: '789 Another Street',
+        city: 'Test City',
+        country: 'Test Country',
+        latitude: 40.7128,
+        longitude: -74.0060,
+        hasParking: false,
+        hasAirCon: false,
+        hasWifi: false,
+        wheelchairAccess: false
+      })
+      console.log('   ❌ Should have thrown duplicate venue error')
+    } catch (error) {
+      console.log('   ✅ Duplicate venue correctly rejected')
+    }
+    
+    // Test distance search
+    const nearbyVenues = await Models.Venue.findByDistance(40.7128, -74.0060, 50, 10)
+    console.log('   ✅ Distance search found venues:', nearbyVenues.length)
+    
+    // Test city search
+    const cityVenues = await Models.Venue.search('Test City')
+    console.log('   ✅ City search found venues:', cityVenues.length)
+    
+    // Cleanup
+    await db.venue.delete({ where: { id: newVenue.id } })
+    console.log('   ✅ Venue deleted successfully')
+    
+  } catch (error) {
+    console.error('   ❌ Venue model test failed:', error instanceof Error ? error.message : 'Unknown error')
+    throw error
+  }
+}
+
+async function testTeacherModel() {
+  console.log('🧪 Testing Teacher Model...')
+  
+  try {
+    // Test teacher creation with validation
+    const newTeacher = await Models.Teacher.create({
+      name: 'Test Teacher Enhanced',
+      slug: 'test-teacher-enhanced',
+      bio: 'An enhanced test teacher for the blues dance community',
+      specialties: ['Blues Fusion', 'Authentic Blues'],
+      yearsActive: 10,
+      website: 'https://testteacher.com',
+      verified: false,
+      socialMedia: {
+        facebook: 'https://facebook.com/testteacher',
+        instagram: 'https://instagram.com/testteacher'
+      }
+    })
+    console.log('   ✅ Teacher created with specialties:', newTeacher.name)
+    
+    // Test duplicate slug handling
+    const teacherWithDuplicateSlug = await Models.Teacher.create({
+      name: 'Another Test Teacher',
+      slug: 'test-teacher-enhanced', // Same slug
+      specialties: ['Contemporary Blues'],
+      verified: false
+    })
+    console.log('   ✅ Duplicate slug handled:', teacherWithDuplicateSlug.slug)
+    
+    // Test teacher search
+    const foundTeachers = await Models.Teacher.search('Enhanced', 'Blues Fusion')
+    console.log('   ✅ Teacher search found:', foundTeachers.length)
+    
+    // Test teacher update
+    const updatedTeacher = await Models.Teacher.update(newTeacher.id, {
+      specialties: ['Updated Specialty', 'New Specialty'],
+      verified: true
+    })
+    console.log('   ✅ Teacher updated with new specialties')
+    
+    // Cleanup
+    await db.teacher.delete({ where: { id: newTeacher.id } })
+    await db.teacher.delete({ where: { id: teacherWithDuplicateSlug.id } })
+    console.log('   ✅ Teachers deleted successfully')
+    
+  } catch (error) {
+    console.error('   ❌ Teacher model test failed:', error instanceof Error ? error.message : 'Unknown error')
+    throw error
+  }
+}
+
+async function testMusicianModel() {
+  console.log('🧪 Testing Musician Model...')
+  
+  try {
+    // Test musician creation with validation
+    const newMusician = await Models.Musician.create({
+      name: 'Test Musician Enhanced',
+      slug: 'test-musician-enhanced',
+      bio: 'An enhanced test musician for blues events',
+      genres: ['Electric Blues', 'Contemporary Blues'],
+      instruments: ['Guitar', 'Harmonica'],
+      yearsActive: 15,
+      verified: false,
+      socialMedia: {
+        spotify: 'https://spotify.com/testmusician',
+        youtube: 'https://youtube.com/testmusician'
+      }
+    })
+    console.log('   ✅ Musician created with genres:', newMusician.name)
+    
+    // Test musician search
+    const foundMusicians = await Models.Musician.search('Enhanced', 'Electric Blues')
+    console.log('   ✅ Musician search found:', foundMusicians.length)
+    
+    // Test musician update
+    const updatedMusician = await Models.Musician.update(newMusician.id, {
+      genres: ['Jazz Blues', 'Delta Blues'],
+      verified: true
+    })
+    console.log('   ✅ Musician updated with new genres')
+    
+    // Cleanup
+    await db.musician.delete({ where: { id: newMusician.id } })
+    console.log('   ✅ Musician deleted successfully')
+    
+  } catch (error) {
+    console.error('   ❌ Musician model test failed:', error instanceof Error ? error.message : 'Unknown error')
+    throw error
+  }
+}
+
+async function testEventModel() {
+  console.log('🧪 Testing Event Model...')
+  
+  try {
+    // First create required dependencies
+    const venue = await db.venue.create({
+      data: {
+        name: 'Test Event Venue',
+        address: '123 Event Street',
+        city: 'Event City',
+        country: 'Event Country',
+        latitude: 40.7128,
+        longitude: -74.0060
+      }
+    })
+    
+    const teacher = await db.teacher.create({
+      data: {
+        name: 'Event Test Teacher',
+        slug: 'event-test-teacher'
+      }
+    })
+    
+    const musician = await db.musician.create({
+      data: {
+        name: 'Event Test Musician',
+        slug: 'event-test-musician'
+      }
+    })
+    
+    // Test event creation with validation
+    const startDate = new Date('2024-06-01T19:00:00Z')
+    const endDate = new Date('2024-06-03T23:00:00Z')
+    
+    const newEvent = await Models.Event.create({
+      name: 'Test Event Enhanced',
+      slug: 'test-event-enhanced',
+      description: 'An enhanced test event for the blues dance community',
+      shortDesc: 'Enhanced test event',
+      startDate,
+      endDate,
+      registrationDeadline: new Date('2024-05-25T23:59:59Z'),
+      venueId: venue.id,
+      status: 'PUBLISHED',
+      featured: true,
+      verified: false,
+      publicationDate: new Date(),
+      teachers: [teacher.id],
+      musicians: [musician.id],
+      prices: [
+        {
+          type: 'EARLY_BIRD',
+          amount: 150,
+          currency: 'USD',
+          deadline: new Date('2024-05-15T23:59:59Z'),
+          available: true
+        },
+        {
+          type: 'REGULAR',
+          amount: 200,
+          currency: 'USD',
+          available: true
+        }
+      ],
+      tags: ['Workshop', 'Live Music', 'International']
+    })
+    console.log('   ✅ Event created with relations:', newEvent.name)
+    
+    // Test date validation
+    try {
+      await Models.Event.create({
+        name: 'Invalid Event',
+        slug: 'invalid-event',
+        startDate: new Date('2024-06-03T19:00:00Z'),
+        endDate: new Date('2024-06-01T23:00:00Z'), // End before start
+        venueId: venue.id,
+        status: 'DRAFT',
+        verified: false,
+        publicationDate: new Date(),
+        featured: false,
+        teachers: [],
+        musicians: [],
+        prices: [],
+        tags: []
+      })
+      console.log('   ❌ Should have thrown date validation error')
+    } catch (error) {
+      console.log('   ✅ Date validation correctly rejected')
+    }
+    
+    // Test event search
+    const searchResults = await Models.Event.search({
+      query: 'Enhanced',
+      featured: true
+    }, { page: 1, limit: 10 })
+    console.log('   ✅ Event search found:', searchResults.events.length)
+    
+    // Cleanup
+    await db.event.delete({ where: { id: newEvent.id } })
+    await db.teacher.delete({ where: { id: teacher.id } })
+    await db.musician.delete({ where: { id: musician.id } })
+    await db.venue.delete({ where: { id: venue.id } })
+    console.log('   ✅ Event and dependencies deleted successfully')
+    
+  } catch (error) {
+    console.error('   ❌ Event model test failed:', error instanceof Error ? error.message : 'Unknown error')
+    throw error
+  }
+}
+
+async function testFollowingModel() {
+  console.log('🧪 Testing Following Model...')
+  
+  try {
+    // Create test data
+    const user = await db.user.create({
+      data: {
+        email: 'following.test@example.com',
+        name: 'Following Test User'
+      }
+    })
+    
+    const teacher = await db.teacher.create({
+      data: {
+        name: 'Followable Teacher',
+        slug: 'followable-teacher'
+      }
+    })
+    
+    // Test following
+    const following = await Models.Following.follow({
+      userId: user.id,
+      targetType: 'TEACHER',
+      targetId: teacher.id
+    })
+    console.log('   ✅ Following relationship created')
+    
+    // Test duplicate following validation
+    try {
+      await Models.Following.follow({
+        userId: user.id,
+        targetType: 'TEACHER',
+        targetId: teacher.id
+      })
+      console.log('   ❌ Should have thrown duplicate following error')
+    } catch (error) {
+      console.log('   ✅ Duplicate following correctly rejected')
+    }
+    
+    // Check follower count update
+    const updatedTeacher = await db.teacher.findUnique({ where: { id: teacher.id } })
+    console.log('   ✅ Follower count updated:', updatedTeacher?.followerCount)
+    
+    // Test unfollowing
+    await Models.Following.unfollow(user.id, 'TEACHER', teacher.id)
+    console.log('   ✅ Following relationship removed')
+    
+    // Check follower count decrease
+    const finalTeacher = await db.teacher.findUnique({ where: { id: teacher.id } })
+    console.log('   ✅ Follower count decreased:', finalTeacher?.followerCount)
+    
+    // Cleanup
+    await db.user.delete({ where: { id: user.id } })
+    await db.teacher.delete({ where: { id: teacher.id } })
+    console.log('   ✅ Following test data deleted successfully')
+    
+  } catch (error) {
+    console.error('   ❌ Following model test failed:', error instanceof Error ? error.message : 'Unknown error')
+    throw error
+  }
+}
+
+// Main test function
+export async function runModelTests() {
+  console.log('🚀 Starting Enhanced Model Tests...\n')
+  
+  try {
+    await testUserModel()
+    console.log()
+    
+    await testVenueModel()
+    console.log()
+    
+    await testTeacherModel()
+    console.log()
+    
+    await testMusicianModel()
+    console.log()
+    
+    await testEventModel()
+    console.log()
+    
+    await testFollowingModel()
+    console.log()
+    
+    console.log('✅ All Enhanced Model Tests Passed!')
+    console.log('🎉 Core database models are working perfectly!')
+    
+  } catch (error) {
+    console.error('❌ Model tests failed:', error)
+    throw error
+  }
+}
+
+// Run tests if called directly
+if (require.main === module) {
+  runModelTests()
+    .then(() => {
+      console.log('\nModel tests completed successfully')
+      process.exit(0)
+    })
+    .catch((error) => {
+      console.error('\nModel tests failed:', error)
+      process.exit(1)
+    })
+}

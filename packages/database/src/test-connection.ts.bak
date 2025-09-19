@@ -1,0 +1,99 @@
+// Test Prisma connection and basic queries
+
+import { db, checkDatabaseHealth, connectDatabase, disconnectDatabase } from './index'
+
+async function testDatabaseConnection() {
+  console.log('🔍 Testing Prisma database connection...\n')
+
+  try {
+    // Test database health
+    console.log('1. Testing database health...')
+    const health = await checkDatabaseHealth()
+    console.log(`   Status: ${health.status}`)
+    console.log(`   Timestamp: ${health.timestamp}\n`)
+
+    // Test basic queries
+    console.log('2. Testing basic queries...')
+    
+    // Count records
+    const counts = await Promise.all([
+      db.user.count(),
+      db.event.count(),
+      db.teacher.count(),
+      db.musician.count(),
+      db.venue.count()
+    ])
+
+    console.log(`   Users: ${counts[0]}`)
+    console.log(`   Events: ${counts[1]}`)
+    console.log(`   Teachers: ${counts[2]}`)
+    console.log(`   Musicians: ${counts[3]}`)
+    console.log(`   Venues: ${counts[4]}\n`)
+
+    // Test complex query with relations
+    console.log('3. Testing complex query with relations...')
+    const events = await db.event.findMany({
+      take: 2,
+      include: {
+        venue: true,
+        teachers: {
+          include: {
+            teacher: true
+          }
+        },
+        musicians: {
+          include: {
+            musician: true
+          }
+        },
+        prices: true
+      }
+    })
+
+    console.log(`   Found ${events.length} events with full relations`)
+    events.forEach((event, index) => {
+      console.log(`   Event ${index + 1}: ${event.name}`)
+      console.log(`     Venue: ${event.venue.name}, ${event.venue.city}`)
+      console.log(`     Teachers: ${event.teachers.length}`)
+      console.log(`     Musicians: ${event.musicians.length}`)
+      console.log(`     Prices: ${event.prices.length}`)
+    })
+
+    // Test user with following
+    console.log('\n4. Testing user following relationships...')
+    const user = await db.user.findFirst({
+      include: {
+        following: true,
+        preferences: true
+      }
+    })
+
+    if (user) {
+      console.log(`   User: ${user.name} (${user.email})`)
+      console.log(`   Following: ${user.following.length} entities`)
+      console.log(`   Preferences: ${user.preferences ? 'Configured' : 'Not set'}`)
+    }
+
+    console.log('\n✅ All database tests passed!')
+    console.log('🎉 Prisma setup is working correctly!')
+
+  } catch (error) {
+    console.error('❌ Database test failed:', error)
+    throw error
+  }
+}
+
+// Run test if called directly
+if (require.main === module) {
+  testDatabaseConnection()
+    .then(() => {
+      console.log('\nTest completed successfully')
+      process.exit(0)
+    })
+    .catch((error) => {
+      console.error('\nTest failed:', error)
+      process.exit(1)
+    })
+}
+
+export { testDatabaseConnection }

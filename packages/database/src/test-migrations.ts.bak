@@ -1,0 +1,535 @@
+// Comprehensive migration and seeding test suite
+// This script tests the complete database setup process on a clean environment
+
+import { exec } from 'child_process'
+import { promisify } from 'util'
+import { db } from './index'
+import { seedDatabase } from './seed'
+import { setupTestScenarios, cleanupTestData } from './test-data'
+import { runModelTests } from './test-models'
+
+const execAsync = promisify(exec)
+
+// ============================================================================
+// TEST CONFIGURATION
+// ============================================================================
+
+interface TestConfig {
+  testDatabase: string
+  verbose: boolean
+  includeTestScenarios: boolean
+  cleanupAfterTests: boolean
+}
+
+const defaultConfig: TestConfig = {
+  testDatabase: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL + '_test',
+  verbose: true,
+  includeTestScenarios: true,
+  cleanupAfterTests: true
+}
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+function log(message: string, verbose = true) {
+  if (verbose) {
+    console.log(`[${new Date().toISOString()}] ${message}`)
+  }
+}
+
+function logError(message: string, error?: any) {
+  console.error(`[${new Date().toISOString()}] ❌ ${message}`)
+  if (error) {
+    console.error(error)
+  }
+}
+
+function logSuccess(message: string) {
+  console.log(`[${new Date().toISOString()}] ✅ ${message}`)
+}
+
+async function runCommand(command: string, description: string): Promise<string> {
+  try {
+    log(`Running: ${description}`)
+    const { stdout, stderr } = await execAsync(command)
+    if (stderr && !stderr.includes('warn')) {
+      console.warn('Warning:', stderr)
+    }
+    return stdout
+  } catch (error) {
+    throw new Error(`Failed to ${description}: ${error instanceof Error ? error.message : 'Unknown error'}`)
+  }
+}
+
+// ============================================================================
+// TEST FUNCTIONS
+// ============================================================================
+
+/**
+ * Test 1: Database Connection
+ */
+async function testDatabaseConnection(): Promise<boolean> {
+  try {
+    log('Testing database connection...')
+    await db.$queryRaw`SELECT 1 as test`
+    logSuccess('Database connection successful')
+    return true
+  } catch (error) {
+    logError('Database connection failed', error)
+    return false
+  }
+}
+
+/**
+ * Test 2: Migration Application
+ */
+async function testMigrationApplication(): Promise<boolean> {
+  try {
+    log('Testing migration application...')
+    
+    // Check migration status
+    await runCommand('npx prisma migrate status', 'check migration status')
+    
+    // Apply migrations
+    await runCommand('npx prisma migrate deploy', 'apply migrations')
+    
+    logSuccess('Migrations applied successfully')
+    return true
+  } catch (error) {
+    logError('Migration application failed', error)
+    return false
+  }
+}
+
+/**
+ * Test 3: Schema Validation
+ */
+async function testSchemaValidation(): Promise<boolean> {
+  try {
+    log('Testing schema validation...')
+    
+    // Validate Prisma schema
+    await runCommand('npx prisma validate', 'validate Prisma schema')
+    
+    // Generate client
+    await runCommand('npx prisma generate', 'generate Prisma client')
+    
+    logSuccess('Schema validation successful')
+    return true
+  } catch (error) {
+    logError('Schema validation failed', error)
+    return false
+  }
+}
+
+/**
+ * Test 4: Table Structure Verification
+ */
+async function testTableStructure(): Promise<boolean> {
+  try {
+    log('Testing table structure...')
+    
+    // Check all expected tables exist
+    const expectedTables = [
+      'users', 'accounts', 'sessions', 'verificationtokens',
+      'user_preferences', 'events', 'venues', 'teachers', 'musicians',
+      'event_teachers', 'event_musicians', 'following', 'event_prices',
+      'event_tags', 'event_saves', 'event_attendances', 'event_reviews',
+      'teacher_specialties', 'musician_genres', 'teacher_social_media',
+      'musician_social_media', 'notifications'
+    ]
+    
+    for (const table of expectedTables) {
+      const result = await db.$queryRaw`
+        SELECT EXISTS (
+          SELECT FROM information_schema.tables 
+          WHERE table_name = ${table}
+        ) as exists
+      ` as any[]
+      
+      if (!result[0].exists) {
+        throw new Error(`Table ${table} does not exist`)
+      }
+    }
+    
+    logSuccess('All expected tables exist')
+    return true
+  } catch (error) {
+    logError('Table structure verification failed', error)
+    return false
+  }
+}
+
+/**
+ * Test 5: Index Verification
+ */
+async function testIndexes(): Promise<boolean> {
+  try {
+    log('Testing database indexes...')
+    
+    // Check critical indexes exist
+    const criticalIndexes = [
+      'users_email_key',
+      'events_slug_key',
+      'teachers_slug_key',
+      'musicians_slug_key',
+      'venues_name_city_country_key',
+      'following_userId_targetType_targetId_key'
+    ]
+    
+    for (const indexName of criticalIndexes) {
+      const result = await db.$queryRaw`
+        SELECT EXISTS (
+          SELECT FROM pg_indexes 
+          WHERE indexname = ${indexName}
+        ) as exists
+      ` as any[]
+      
+      if (!result[0].exists) {
+        throw new Error(`Critical index ${indexName} does not exist`)
+      }
+    }
+    
+    logSuccess('All critical indexes exist')
+    return true
+  } catch (error) {
+    logError('Index verification failed', error)
+    return false
+  }
+}
+
+/**
+ * Test 6: Foreign Key Constraints
+ */
+async function testForeignKeyConstraints(): Promise<boolean> {
+  try {
+    log('Testing foreign key constraints...')
+    
+    // Get count of foreign key constraints
+    const result = await db.$queryRaw`
+      SELECT COUNT(*) as count
+      FROM information_schema.table_constraints 
+      WHERE constraint_type = 'FOREIGN KEY'
+    ` as any[]
+    
+    const fkCount = parseInt(result[0].count)
+    
+    // We expect at least 20 foreign key constraints
+    if (fkCount < 20) {
+      throw new Error(`Expected at least 20 foreign key constraints, found ${fkCount}`)
+    }
+    
+    logSuccess(`Found ${fkCount} foreign key constraints`)
+    return true
+  } catch (error) {
+    logError('Foreign key constraint verification failed', error)
+    return false
+  }
+}
+
+/**
+ * Test 7: Basic Seeding
+ */
+async function testBasicSeeding(): Promise<boolean> {
+  try {
+    log('Testing basic seeding...')
+    
+    // Run basic seed
+    await seedDatabase(false)
+    
+    // Verify seed data
+    const counts = await Promise.all([
+      db.venue.count(),
+      db.teacher.count(),
+      db.musician.count(),
+      db.event.count(),
+      db.user.count()
+    ])
+    
+    const [venueCount, teacherCount, musicianCount, eventCount, userCount] = counts
+    
+    if (venueCount === 0 || teacherCount === 0 || musicianCount === 0 || eventCount === 0 || userCount === 0) {
+      throw new Error('Seed data is incomplete')
+    }
+    
+    logSuccess(`Seeded: ${venueCount} venues, ${teacherCount} teachers, ${musicianCount} musicians, ${eventCount} events, ${userCount} users`)
+    return true
+  } catch (error) {
+    logError('Basic seeding failed', error)
+    return false
+  }
+}
+
+/**
+ * Test 8: Model Operations
+ */
+async function testModelOperations(): Promise<boolean> {
+  try {
+    log('Testing model operations...')
+    
+    // Run comprehensive model tests
+    await runModelTests()
+    
+    logSuccess('All model operations working correctly')
+    return true
+  } catch (error) {
+    logError('Model operations test failed', error)
+    return false
+  }
+}
+
+/**
+ * Test 9: Test Scenarios
+ */
+async function testScenarios(config: TestConfig): Promise<boolean> {
+  if (!config.includeTestScenarios) {
+    log('Skipping test scenarios (disabled in config)')
+    return true
+  }
+  
+  try {
+    log('Testing advanced scenarios...')
+    
+    // Setup test scenarios
+    await setupTestScenarios()
+    
+    // Verify scenario data
+    const [
+      notificationCount,
+      reviewCount,
+      attendanceCount,
+      saveCount
+    ] = await Promise.all([
+      db.notification.count(),
+      db.eventReview.count(),
+      db.eventAttendance.count(),
+      db.eventSave.count()
+    ])
+    
+    if (notificationCount === 0 || reviewCount === 0 || attendanceCount === 0 || saveCount === 0) {
+      throw new Error('Test scenario data is incomplete')
+    }
+    
+    logSuccess(`Test scenarios: ${notificationCount} notifications, ${reviewCount} reviews, ${attendanceCount} attendances, ${saveCount} saves`)
+    return true
+  } catch (error) {
+    logError('Test scenarios failed', error)
+    return false
+  }
+}
+
+/**
+ * Test 10: Data Integrity
+ */
+async function testDataIntegrity(): Promise<boolean> {
+  try {
+    log('Testing data integrity...')
+    
+    // Test foreign key relationships
+    const orphanedRecords = await db.$queryRaw`
+      SELECT 
+        'events' as table_name,
+        COUNT(*) as orphaned_count
+      FROM events e
+      LEFT JOIN venues v ON e."venueId" = v.id
+      WHERE v.id IS NULL
+      
+      UNION ALL
+      
+      SELECT 
+        'event_teachers' as table_name,
+        COUNT(*) as orphaned_count
+      FROM event_teachers et
+      LEFT JOIN events e ON et."eventId" = e.id
+      LEFT JOIN teachers t ON et."teacherId" = t.id
+      WHERE e.id IS NULL OR t.id IS NULL
+      
+      UNION ALL
+      
+      SELECT 
+        'following' as table_name,
+        COUNT(*) as orphaned_count
+      FROM following f
+      LEFT JOIN users u ON f."userId" = u.id
+      WHERE u.id IS NULL
+    ` as any[]
+    
+    const hasOrphans = orphanedRecords.some(record => parseInt(record.orphaned_count) > 0)
+    
+    if (hasOrphans) {
+      logError('Data integrity issues found:')
+      orphanedRecords.forEach(record => {
+        if (parseInt(record.orphaned_count) > 0) {
+          console.error(`  - ${record.table_name}: ${record.orphaned_count} orphaned records`)
+        }
+      })
+      return false
+    }
+    
+    logSuccess('Data integrity checks passed')
+    return true
+  } catch (error) {
+    logError('Data integrity test failed', error)
+    return false
+  }
+}
+
+/**
+ * Test 11: Performance Check
+ */
+async function testPerformance(): Promise<boolean> {
+  try {
+    log('Testing basic performance...')
+    
+    // Test query performance
+    const startTime = Date.now()
+    
+    await Promise.all([
+      db.event.findMany({ take: 10, include: { venue: true, teachers: true } }),
+      db.teacher.findMany({ take: 10, include: { specialties: true } }),
+      db.user.findMany({ take: 5, include: { preferences: true } })
+    ])
+    
+    const queryTime = Date.now() - startTime
+    
+    // Queries should complete within reasonable time (2 seconds)
+    if (queryTime > 2000) {
+      console.warn(`Queries took ${queryTime}ms, consider optimizing`)
+    }
+    
+    logSuccess(`Basic queries completed in ${queryTime}ms`)
+    return true
+  } catch (error) {
+    logError('Performance test failed', error)
+    return false
+  }
+}
+
+/**
+ * Test 12: Cleanup
+ */
+async function testCleanup(config: TestConfig): Promise<boolean> {
+  if (!config.cleanupAfterTests) {
+    log('Skipping cleanup (disabled in config)')
+    return true
+  }
+  
+  try {
+    log('Testing cleanup procedures...')
+    
+    if (config.includeTestScenarios) {
+      await cleanupTestData()
+    }
+    
+    logSuccess('Cleanup procedures completed')
+    return true
+  } catch (error) {
+    logError('Cleanup test failed', error)
+    return false
+  }
+}
+
+// ============================================================================
+// MAIN TEST SUITE
+// ============================================================================
+
+export async function runMigrationTests(config: TestConfig = defaultConfig): Promise<boolean> {
+  console.log('🧪 Starting comprehensive migration and seeding tests...')
+  console.log('Configuration:', config)
+  console.log('')
+  
+  const tests = [
+    { name: 'Database Connection', fn: testDatabaseConnection },
+    { name: 'Migration Application', fn: testMigrationApplication },
+    { name: 'Schema Validation', fn: testSchemaValidation },
+    { name: 'Table Structure', fn: testTableStructure },
+    { name: 'Database Indexes', fn: testIndexes },
+    { name: 'Foreign Key Constraints', fn: testForeignKeyConstraints },
+    { name: 'Basic Seeding', fn: testBasicSeeding },
+    { name: 'Model Operations', fn: testModelOperations },
+    { name: 'Test Scenarios', fn: () => testScenarios(config) },
+    { name: 'Data Integrity', fn: testDataIntegrity },
+    { name: 'Performance Check', fn: testPerformance },
+    { name: 'Cleanup', fn: () => testCleanup(config) }
+  ]
+  
+  let passed = 0
+  let failed = 0
+  const failedTests: string[] = []
+  
+  for (const test of tests) {
+    try {
+      console.log(`\n📋 Running: ${test.name}`)
+      const result = await test.fn()
+      
+      if (result) {
+        passed++
+        logSuccess(`${test.name} passed`)
+      } else {
+        failed++
+        failedTests.push(test.name)
+        logError(`${test.name} failed`)
+      }
+    } catch (error) {
+      failed++
+      failedTests.push(test.name)
+      logError(`${test.name} failed with exception`, error)
+    }
+  }
+  
+  // Final summary
+  console.log('\n' + '='.repeat(50))
+  console.log('🏁 Test Summary')
+  console.log('='.repeat(50))
+  console.log(`Total tests: ${tests.length}`)
+  console.log(`Passed: ${passed}`)
+  console.log(`Failed: ${failed}`)
+  
+  if (failed > 0) {
+    console.log('\n❌ Failed tests:')
+    failedTests.forEach(test => console.log(`  - ${test}`))
+    console.log('\n💡 Check the logs above for detailed error information.')
+    return false
+  } else {
+    console.log('\n🎉 All tests passed! Database setup is working correctly.')
+    return true
+  }
+}
+
+// ============================================================================
+// CLI INTERFACE
+// ============================================================================
+
+async function main() {
+  try {
+    // Parse command line arguments
+    const args = process.argv.slice(2)
+    const config: TestConfig = { ...defaultConfig }
+    
+    // Parse CLI flags
+    if (args.includes('--no-scenarios')) {
+      config.includeTestScenarios = false
+    }
+    if (args.includes('--no-cleanup')) {
+      config.cleanupAfterTests = false
+    }
+    if (args.includes('--quiet')) {
+      config.verbose = false
+    }
+    
+    const success = await runMigrationTests(config)
+    process.exit(success ? 0 : 1)
+    
+  } catch (error) {
+    logError('Test suite failed to run', error)
+    process.exit(1)
+  } finally {
+    await db.$disconnect()
+  }
+}
+
+// Run if called directly
+if (require.main === module) {
+  main()
+}

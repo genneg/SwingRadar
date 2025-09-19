@@ -1,0 +1,955 @@
+// Enhanced database models with business logic and validation
+// This file implements the core business logic for all database operations
+
+import { db } from './index'
+import { 
+  UserCreateSchema, 
+  UserUpdateSchema, 
+  VenueCreateSchema, 
+  VenueUpdateSchema,
+  TeacherCreateSchema, 
+  TeacherUpdateSchema,
+  MusicianCreateSchema, 
+  MusicianUpdateSchema,
+  EventCreateSchema, 
+  EventUpdateSchema,
+  FollowingCreateSchema,
+  EventSaveSchema,
+  EventAttendanceSchema,
+  EventReviewSchema,
+  SearchFiltersSchema,
+  PaginationSchema,
+  generateSlug,
+  isValidCoordinates
+} from './schemas'
+import type { 
+  UserCreate, 
+  UserUpdate, 
+  VenueCreate, 
+  VenueUpdate,
+  TeacherCreate, 
+  TeacherUpdate,
+  MusicianCreate, 
+  MusicianUpdate,
+  EventCreate, 
+  EventUpdate,
+  FollowingCreate,
+  SearchFilters,
+  Pagination
+} from './schemas'
+
+// ============================================================================
+// USER MODEL OPERATIONS
+// ============================================================================
+
+export class UserModel {
+  /**
+   * Create a new user with validation
+   */
+  static async create(data: UserCreate) {
+    // Validate input data
+    const validatedData = UserCreateSchema.parse(data)
+    
+    // Check if email already exists
+    const existingUser = await db.user.findUnique({
+      where: { email: validatedData.email }
+    })
+    
+    if (existingUser) {
+      throw new Error(`User with email ${validatedData.email} already exists`)
+    }
+    
+    // Create user with default preferences
+    return await db.user.create({
+      data: {
+        ...validatedData,
+        preferences: {
+          create: {
+            emailNotifications: true,
+            pushNotifications: true,
+            newEventNotifications: true,
+            deadlineReminders: true,
+            weeklyDigest: true,
+            followingUpdates: true
+          }
+        }
+      },
+      include: {
+        preferences: true
+      }
+    })
+  }
+
+  /**
+   * Update user with validation
+   */
+  static async update(id: string, data: UserUpdate) {
+    const validatedData = UserUpdateSchema.parse(data)
+    
+    // Check if user exists
+    const existingUser = await db.user.findUnique({ where: { id } })
+    if (!existingUser) {
+      throw new Error(`User with id ${id} not found`)
+    }
+    
+    // Check email uniqueness if email is being updated
+    if (validatedData.email && validatedData.email !== existingUser.email) {
+      const emailExists = await db.user.findUnique({
+        where: { email: validatedData.email }
+      })
+      if (emailExists) {
+        throw new Error(`Email ${validatedData.email} is already in use`)
+      }
+    }
+    
+    return await db.user.update({
+      where: { id },
+      data: validatedData,
+      include: {
+        preferences: true,
+        following: true
+      }
+    })
+  }
+
+  /**
+   * Get user by ID with optional includes
+   */
+  static async findById(id: string, includeRelations = false) {
+    return await db.user.findUnique({
+      where: { id },
+      include: includeRelations ? {
+        preferences: true,
+        following: true,
+        savedEvents: {
+          include: { event: true }
+        },
+        eventAttendances: {
+          include: { event: true }
+        }
+      } : undefined
+    })
+  }
+
+  /**
+   * Get user by email
+   */
+  static async findByEmail(email: string) {
+    return await db.user.findUnique({
+      where: { email },
+      include: {
+        preferences: true
+      }
+    })
+  }
+
+  /**
+   * Delete user and all related data (GDPR compliance)
+   */
+  static async delete(id: string) {
+    // Verify user exists
+    const user = await db.user.findUnique({ where: { id } })
+    if (!user) {
+      throw new Error(`User with id ${id} not found`)
+    }
+
+    // Delete user (cascading deletes will handle related data)
+    return await db.user.delete({ where: { id } })
+  }
+}
+
+// ============================================================================
+// VENUE MODEL OPERATIONS
+// ============================================================================
+
+export class VenueModel {
+  /**
+   * Create venue with validation
+   */
+  static async create(data: VenueCreate) {
+    const validatedData = VenueCreateSchema.parse(data)
+    
+    // Validate coordinates
+    if (!isValidCoordinates(validatedData.latitude, validatedData.longitude)) {
+      throw new Error('Invalid coordinates provided')
+    }
+    
+    // Check for duplicate venue (same name in same city/country)
+    const existingVenue = await db.venue.findUnique({
+      where: {
+        name_city_country: {
+          name: validatedData.name,
+          city: validatedData.city,
+          country: validatedData.country
+        }
+      }
+    })
+    
+    if (existingVenue) {
+      throw new Error(`Venue ${validatedData.name} already exists in ${validatedData.city}, ${validatedData.country}`)
+    }
+    
+    return await db.venue.create({
+      data: validatedData
+    })
+  }
+
+  /**
+   * Update venue with validation
+   */
+  static async update(id: string, data: VenueUpdate) {
+    const validatedData = VenueUpdateSchema.parse(data)
+    
+    // Validate coordinates if provided
+    if (validatedData.latitude !== undefined && validatedData.longitude !== undefined) {
+      if (!isValidCoordinates(validatedData.latitude, validatedData.longitude)) {
+        throw new Error('Invalid coordinates provided')
+      }
+    }
+    
+    return await db.venue.update({
+      where: { id },
+      data: validatedData
+    })
+  }
+
+  /**
+   * Find venues by distance from coordinates
+   * Uses simple distance calculation until PostGIS is enabled
+   */
+  static async findByDistance(lat: number, lng: number, radiusKm: number = 100, limit: number = 20) {
+    if (!isValidCoordinates(lat, lng)) {
+      throw new Error('Invalid coordinates provided')
+    }
+
+    // For now, use simple coordinate filtering (will be replaced with PostGIS)
+    const venues = await db.venue.findMany({
+      take: limit * 2, // Get more to filter by distance
+    })
+
+    // Calculate distance using Haversine formula
+    const venuesWithDistance = venues.map(venue => {
+      const distance = VenueModel.calculateDistance(
+        lat, lng, 
+        Number(venue.latitude), Number(venue.longitude)
+      )
+      return { ...venue, distance_km: distance }
+    })
+
+    // Filter by radius and sort by distance
+    return venuesWithDistance
+      .filter(venue => venue.distance_km <= radiusKm)
+      .sort((a, b) => a.distance_km - b.distance_km)
+      .slice(0, limit)
+  }
+
+  /**
+   * Calculate distance between two points using Haversine formula
+   */
+  static calculateDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
+    const R = 6371 // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLon = (lon2 - lon1) * Math.PI / 180
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    return R * c // Distance in kilometers
+  }
+
+  /**
+   * Search venues by city/country
+   */
+  static async search(city?: string, country?: string, limit: number = 20) {
+    return await db.venue.findMany({
+      where: {
+        AND: [
+          city ? { city: { contains: city, mode: 'insensitive' } } : {},
+          country ? { country: { contains: country, mode: 'insensitive' } } : {}
+        ]
+      },
+      take: limit,
+      orderBy: [
+        { city: 'asc' },
+        { name: 'asc' }
+      ]
+    })
+  }
+}
+
+// ============================================================================
+// TEACHER MODEL OPERATIONS
+// ============================================================================
+
+export class TeacherModel {
+  /**
+   * Create teacher with validation
+   */
+  static async create(data: TeacherCreate) {
+    const validatedData = TeacherCreateSchema.parse(data)
+    
+    // Generate slug if not provided or validate if provided
+    let slug = validatedData.slug
+    if (!slug) {
+      slug = generateSlug(validatedData.name)
+    }
+    
+    // Ensure slug uniqueness
+    const existingTeacher = await db.teacher.findUnique({ where: { slug } })
+    if (existingTeacher) {
+      // Append random string to make unique
+      slug = `${slug}-${Math.random().toString(36).substr(2, 6)}`
+    }
+    
+    const { specialties, socialMedia, ...teacherData } = validatedData
+    
+    return await db.teacher.create({
+      data: {
+        ...teacherData,
+        slug,
+        specialties: specialties?.length ? {
+          create: specialties.map(specialty => ({ specialty }))
+        } : undefined,
+        socialMedia: socialMedia ? {
+          create: socialMedia
+        } : undefined
+      },
+      include: {
+        specialties: true,
+        socialMedia: true
+      }
+    })
+  }
+
+  /**
+   * Update teacher with validation
+   */
+  static async update(id: string, data: TeacherUpdate) {
+    const validatedData = TeacherUpdateSchema.parse(data)
+    
+    // Handle slug updates
+    if (validatedData.slug) {
+      const existingTeacher = await db.teacher.findUnique({ 
+        where: { slug: validatedData.slug }
+      })
+      if (existingTeacher && existingTeacher.id !== id) {
+        throw new Error(`Slug ${validatedData.slug} is already in use`)
+      }
+    }
+    
+    const { specialties, socialMedia, ...teacherData } = validatedData
+    
+    return await db.teacher.update({
+      where: { id },
+      data: {
+        ...teacherData,
+        // Update specialties if provided
+        ...(specialties && {
+          specialties: {
+            deleteMany: {},
+            create: specialties.map(specialty => ({ specialty }))
+          }
+        }),
+        // Update social media if provided
+        ...(socialMedia && {
+          socialMedia: {
+            upsert: {
+              create: socialMedia,
+              update: socialMedia
+            }
+          }
+        })
+      },
+      include: {
+        specialties: true,
+        socialMedia: true
+      }
+    })
+  }
+
+  /**
+   * Search teachers by name or specialty
+   */
+  static async search(query?: string, specialty?: string, limit: number = 20) {
+    return await db.teacher.findMany({
+      where: {
+        AND: [
+          query ? {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { bio: { contains: query, mode: 'insensitive' } }
+            ]
+          } : {},
+          specialty ? {
+            specialties: {
+              some: {
+                specialty: { contains: specialty, mode: 'insensitive' }
+              }
+            }
+          } : {}
+        ]
+      },
+      include: {
+        specialties: true,
+        socialMedia: true
+      },
+      take: limit,
+      orderBy: [
+        { verified: 'desc' },
+        { followerCount: 'desc' },
+        { name: 'asc' }
+      ]
+    })
+  }
+
+  /**
+   * Get teacher with event history
+   */
+  static async findWithEvents(id: string) {
+    return await db.teacher.findUnique({
+      where: { id },
+      include: {
+        specialties: true,
+        socialMedia: true,
+        events: {
+          include: {
+            event: {
+              include: {
+                venue: true
+              }
+            }
+          },
+          orderBy: {
+            event: {
+              startDate: 'desc'
+            }
+          }
+        }
+      }
+    })
+  }
+}
+
+// ============================================================================
+// MUSICIAN MODEL OPERATIONS
+// ============================================================================
+
+export class MusicianModel {
+  /**
+   * Create musician with validation
+   */
+  static async create(data: MusicianCreate) {
+    const validatedData = MusicianCreateSchema.parse(data)
+    
+    // Generate slug if not provided
+    let slug = validatedData.slug
+    if (!slug) {
+      slug = generateSlug(validatedData.name)
+    }
+    
+    // Ensure slug uniqueness
+    const existingMusician = await db.musician.findUnique({ where: { slug } })
+    if (existingMusician) {
+      slug = `${slug}-${Math.random().toString(36).substr(2, 6)}`
+    }
+    
+    const { genres, socialMedia, ...musicianData } = validatedData
+    
+    return await db.musician.create({
+      data: {
+        ...musicianData,
+        slug,
+        genres: genres?.length ? {
+          create: genres.map(genre => ({ genre }))
+        } : undefined,
+        socialMedia: socialMedia ? {
+          create: socialMedia
+        } : undefined
+      },
+      include: {
+        genres: true,
+        socialMedia: true
+      }
+    })
+  }
+
+  /**
+   * Update musician with validation
+   */
+  static async update(id: string, data: MusicianUpdate) {
+    const validatedData = MusicianUpdateSchema.parse(data)
+    
+    // Handle slug updates
+    if (validatedData.slug) {
+      const existingMusician = await db.musician.findUnique({ 
+        where: { slug: validatedData.slug }
+      })
+      if (existingMusician && existingMusician.id !== id) {
+        throw new Error(`Slug ${validatedData.slug} is already in use`)
+      }
+    }
+    
+    const { genres, socialMedia, ...musicianData } = validatedData
+    
+    return await db.musician.update({
+      where: { id },
+      data: {
+        ...musicianData,
+        // Update genres if provided
+        ...(genres && {
+          genres: {
+            deleteMany: {},
+            create: genres.map(genre => ({ genre }))
+          }
+        }),
+        // Update social media if provided
+        ...(socialMedia && {
+          socialMedia: {
+            upsert: {
+              create: socialMedia,
+              update: socialMedia
+            }
+          }
+        })
+      },
+      include: {
+        genres: true,
+        socialMedia: true
+      }
+    })
+  }
+
+  /**
+   * Search musicians by name or genre
+   */
+  static async search(query?: string, genre?: string, limit: number = 20) {
+    return await db.musician.findMany({
+      where: {
+        AND: [
+          query ? {
+            OR: [
+              { name: { contains: query, mode: 'insensitive' } },
+              { bio: { contains: query, mode: 'insensitive' } }
+            ]
+          } : {},
+          genre ? {
+            genres: {
+              some: {
+                genre: { contains: genre, mode: 'insensitive' }
+              }
+            }
+          } : {}
+        ]
+      },
+      include: {
+        genres: true,
+        socialMedia: true
+      },
+      take: limit,
+      orderBy: [
+        { verified: 'desc' },
+        { followerCount: 'desc' },
+        { name: 'asc' }
+      ]
+    })
+  }
+}
+
+// ============================================================================
+// EVENT MODEL OPERATIONS
+// ============================================================================
+
+export class EventModel {
+  /**
+   * Create event with validation and business logic
+   */
+  static async create(data: EventCreate) {
+    const validatedData = EventCreateSchema.parse(data)
+    
+    // Generate slug if not provided
+    let slug = validatedData.slug
+    if (!slug) {
+      slug = generateSlug(validatedData.name)
+    }
+    
+    // Ensure slug uniqueness
+    const existingEvent = await db.event.findUnique({ where: { slug } })
+    if (existingEvent) {
+      slug = `${slug}-${Math.random().toString(36).substr(2, 6)}`
+    }
+    
+    // Verify venue exists
+    const venue = await db.venue.findUnique({ where: { id: validatedData.venueId } })
+    if (!venue) {
+      throw new Error(`Venue with id ${validatedData.venueId} not found`)
+    }
+    
+    // Verify teachers exist
+    if (validatedData.teachers.length > 0) {
+      const teacherCount = await db.teacher.count({
+        where: { id: { in: validatedData.teachers } }
+      })
+      if (teacherCount !== validatedData.teachers.length) {
+        throw new Error('One or more teacher IDs are invalid')
+      }
+    }
+    
+    // Verify musicians exist
+    if (validatedData.musicians.length > 0) {
+      const musicianCount = await db.musician.count({
+        where: { id: { in: validatedData.musicians } }
+      })
+      if (musicianCount !== validatedData.musicians.length) {
+        throw new Error('One or more musician IDs are invalid')
+      }
+    }
+    
+    const { teachers, musicians, prices, tags, ...eventData } = validatedData
+    
+    return await db.event.create({
+      data: {
+        ...eventData,
+        slug,
+        teachers: teachers.length > 0 ? {
+          create: teachers.map(teacherId => ({ teacherId }))
+        } : undefined,
+        musicians: musicians.length > 0 ? {
+          create: musicians.map(musicianId => ({ musicianId }))
+        } : undefined,
+        prices: prices.length > 0 ? {
+          create: prices
+        } : undefined,
+        tags: tags.length > 0 ? {
+          create: tags.map(tag => ({ tag }))
+        } : undefined
+      },
+      include: {
+        venue: true,
+        teachers: {
+          include: { teacher: true }
+        },
+        musicians: {
+          include: { musician: true }
+        },
+        prices: true,
+        tags: true
+      }
+    })
+  }
+
+  /**
+   * Search events with advanced filters
+   */
+  static async search(filters: SearchFilters, pagination: Pagination) {
+    const validatedFilters = SearchFiltersSchema.parse(filters)
+    const validatedPagination = PaginationSchema.parse(pagination)
+    
+    const where: any = {
+      AND: [
+        // Status filter (default to published)
+        { status: validatedFilters.status || 'PUBLISHED' },
+        
+        // Text search
+        validatedFilters.query ? {
+          OR: [
+            { name: { contains: validatedFilters.query, mode: 'insensitive' } },
+            { description: { contains: validatedFilters.query, mode: 'insensitive' } }
+          ]
+        } : {},
+        
+        // Date range
+        validatedFilters.dateRange ? {
+          startDate: { gte: validatedFilters.dateRange.start },
+          endDate: { lte: validatedFilters.dateRange.end }
+        } : {},
+        
+        // Location
+        validatedFilters.location?.city || validatedFilters.location?.country ? {
+          venue: {
+            AND: [
+              validatedFilters.location?.city ? {
+                city: { contains: validatedFilters.location.city, mode: 'insensitive' }
+              } : {},
+              validatedFilters.location?.country ? {
+                country: { contains: validatedFilters.location.country, mode: 'insensitive' }
+              } : {}
+            ]
+          }
+        } : {},
+        
+        // Teachers
+        validatedFilters.teachers?.length ? {
+          teachers: {
+            some: {
+              teacherId: { in: validatedFilters.teachers }
+            }
+          }
+        } : {},
+        
+        // Musicians
+        validatedFilters.musicians?.length ? {
+          musicians: {
+            some: {
+              musicianId: { in: validatedFilters.musicians }
+            }
+          }
+        } : {},
+        
+        // Tags
+        validatedFilters.tags?.length ? {
+          tags: {
+            some: {
+              tag: { in: validatedFilters.tags }
+            }
+          }
+        } : {},
+        
+        // Featured
+        validatedFilters.featured !== undefined ? {
+          featured: validatedFilters.featured
+        } : {},
+        
+        // Price range
+        validatedFilters.priceRange ? {
+          prices: {
+            some: {
+              amount: {
+                gte: validatedFilters.priceRange.min,
+                lte: validatedFilters.priceRange.max
+              }
+            }
+          }
+        } : {}
+      ]
+    }
+    
+    const [events, total] = await Promise.all([
+      db.event.findMany({
+        where,
+        include: {
+          venue: true,
+          teachers: {
+            include: { teacher: true }
+          },
+          musicians: {
+            include: { musician: true }
+          },
+          prices: {
+            orderBy: { amount: 'asc' }
+          },
+          tags: true,
+          _count: {
+            select: {
+              saves: true,
+              attendances: true
+            }
+          }
+        },
+        orderBy: [
+          { featured: 'desc' },
+          { startDate: 'asc' }
+        ],
+        skip: (validatedPagination.page - 1) * validatedPagination.limit,
+        take: validatedPagination.limit
+      }),
+      db.event.count({ where })
+    ])
+    
+    return {
+      events,
+      pagination: {
+        page: validatedPagination.page,
+        limit: validatedPagination.limit,
+        total,
+        totalPages: Math.ceil(total / validatedPagination.limit)
+      }
+    }
+  }
+
+  /**
+   * Get upcoming events for a user based on their following
+   */
+  static async getPersonalizedEvents(userId: string, limit: number = 20) {
+    // Get user's following
+    const following = await db.following.findMany({
+      where: { userId },
+      select: { targetType: true, targetId: true }
+    })
+    
+    const teacherIds = following
+      .filter(f => f.targetType === 'TEACHER')
+      .map(f => f.targetId)
+      
+    const musicianIds = following
+      .filter(f => f.targetType === 'MUSICIAN')
+      .map(f => f.targetId)
+    
+    if (teacherIds.length === 0 && musicianIds.length === 0) {
+      // No following, return featured events
+      return await db.event.findMany({
+        where: {
+          status: 'PUBLISHED',
+          featured: true,
+          startDate: { gte: new Date() }
+        },
+        include: {
+          venue: true,
+          teachers: { include: { teacher: true } },
+          musicians: { include: { musician: true } },
+          prices: { orderBy: { amount: 'asc' }, take: 1 }
+        },
+        orderBy: { startDate: 'asc' },
+        take: limit
+      })
+    }
+    
+    return await db.event.findMany({
+      where: {
+        status: 'PUBLISHED',
+        startDate: { gte: new Date() },
+        OR: [
+          ...(teacherIds.length > 0 ? [{
+            teachers: {
+              some: { teacherId: { in: teacherIds } }
+            }
+          }] : []),
+          ...(musicianIds.length > 0 ? [{
+            musicians: {
+              some: { musicianId: { in: musicianIds } }
+            }
+          }] : [])
+        ]
+      },
+      include: {
+        venue: true,
+        teachers: { include: { teacher: true } },
+        musicians: { include: { musician: true } },
+        prices: { orderBy: { amount: 'asc' }, take: 1 }
+      },
+      orderBy: { startDate: 'asc' },
+      take: limit
+    })
+  }
+}
+
+// ============================================================================
+// FOLLOWING MODEL OPERATIONS
+// ============================================================================
+
+export class FollowingModel {
+  /**
+   * Follow a teacher or musician
+   */
+  static async follow(data: FollowingCreate) {
+    const validatedData = FollowingCreateSchema.parse(data)
+    
+    // Check if already following
+    const existing = await db.following.findUnique({
+      where: {
+        userId_targetType_targetId: {
+          userId: validatedData.userId,
+          targetType: validatedData.targetType,
+          targetId: validatedData.targetId
+        }
+      }
+    })
+    
+    if (existing) {
+      throw new Error('Already following this entity')
+    }
+    
+    // Verify target exists
+    if (validatedData.targetType === 'TEACHER') {
+      const teacher = await db.teacher.findUnique({ where: { id: validatedData.targetId } })
+      if (!teacher) {
+        throw new Error('Teacher not found')
+      }
+    } else {
+      const musician = await db.musician.findUnique({ where: { id: validatedData.targetId } })
+      if (!musician) {
+        throw new Error('Musician not found')
+      }
+    }
+    
+    // Create following relationship and update follower count
+    const [following] = await Promise.all([
+      db.following.create({
+        data: validatedData
+      }),
+      // Update follower count
+      validatedData.targetType === 'TEACHER'
+        ? db.teacher.update({
+            where: { id: validatedData.targetId },
+            data: { followerCount: { increment: 1 } }
+          })
+        : db.musician.update({
+            where: { id: validatedData.targetId },
+            data: { followerCount: { increment: 1 } }
+          })
+    ])
+    
+    return following
+  }
+
+  /**
+   * Unfollow a teacher or musician
+   */
+  static async unfollow(userId: string, targetType: 'TEACHER' | 'MUSICIAN', targetId: string) {
+    const following = await db.following.findUnique({
+      where: {
+        userId_targetType_targetId: {
+          userId,
+          targetType,
+          targetId
+        }
+      }
+    })
+    
+    if (!following) {
+      throw new Error('Not following this entity')
+    }
+    
+    // Delete following relationship and update follower count
+    await Promise.all([
+      db.following.delete({
+        where: { id: following.id }
+      }),
+      // Update follower count
+      targetType === 'TEACHER'
+        ? db.teacher.update({
+            where: { id: targetId },
+            data: { followerCount: { decrement: 1 } }
+          })
+        : db.musician.update({
+            where: { id: targetId },
+            data: { followerCount: { decrement: 1 } }
+          })
+    ])
+    
+    return following
+  }
+
+  /**
+   * Get user's following list
+   */
+  static async getUserFollowing(userId: string) {
+    return await db.following.findMany({
+      where: { userId },
+      orderBy: { createdAt: 'desc' }
+    })
+  }
+}
+
+// ============================================================================
+// EXPORT ALL MODELS
+// ============================================================================
+
+export const Models = {
+  User: UserModel,
+  Venue: VenueModel,
+  Teacher: TeacherModel,
+  Musician: MusicianModel,
+  Event: EventModel,
+  Following: FollowingModel
+}

@@ -1,0 +1,83 @@
+{
+  "name": "Blues Festival Finder",
+  "short_name": "Blues Festival Finder",
+  "description": "Discover blues dance festivals worldwide and follow your favorite teachers and musicians.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a2846",
+  "theme_color": "#d4a574",
+  "orientation": "portrait-primary",
+  "scope": "/",
+  "lang": "en",
+  "dir": "ltr",
+  "categories": ["music", "entertainment", "events", "lifestyle"],
+  "icons": [
+    {
+      "src": "/favicon-16x16.png",
+      "sizes": "16x16",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/favicon-32x32.png",
+      "sizes": "32x32",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/android-chrome-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/android-chrome-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/screenshots/home-mobile.png",
+      "sizes": "375x667",
+      "type": "image/png",
+      "form_factor": "handset"
+    },
+    {
+      "src": "/screenshots/events-desktop.png",
+      "sizes": "1280x720",
+      "type": "image/png",
+      "form_factor": "desktop"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Find Festivals",
+      "short_name": "Festivals",
+      "description": "Search for blues dance festivals",
+      "url": "/search",
+      "icons": [{ "src": "/icons/search.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "Teachers",
+      "short_name": "Teachers",
+      "description": "Browse blues dance instructors",
+      "url": "/teachers",
+      "icons": [{ "src": "/icons/teachers.png", "sizes": "96x96" }]
+    },
+    {
+      "name": "My Profile",
+      "short_name": "Profile",
+      "description": "View your profile and followed artists",
+      "url": "/profile",
+      "icons": [{ "src": "/icons/profile.png", "sizes": "96x96" }]
+    }
+  ]
+}

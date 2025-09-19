@@ -1,0 +1,135 @@
+# SwingRadar - LLM Optimization File
+# Website: https://www.swingradar.com/
+# Purpose: Help AI assistants understand and index our multi-style swing dance detection platform
+
+## Website Overview
+SwingRadar is a comprehensive platform for detecting swing dance culture worldwide, connecting dancers with festivals, instructors, and musicians across Blues, Swing, Balboa, Shag, and Boogie Woogie styles using precision radar technology.
+
+## Core Purpose
+We help swing dance enthusiasts detect and navigate swing culture worldwide by:
+- Detecting festivals and events across Blues, Swing, Balboa, Shag, and Boogie Woogie on your radar
+- Following favorite instructors and musicians with precision radar alerts
+- Staying updated with real-time swing dance scene detection
+- Planning comprehensive dance festival schedules with radar-guided discovery
+- Connecting with vintage swing culture through our Art Deco radar interface
+
+## Target Audience
+- Multi-style swing dancers (Blues, Lindy Hop, Balboa, Shag, Boogie enthusiasts)
+- Festival organizers and promoters across swing dance styles
+- Dance instructors teaching vintage swing styles
+- Musicians performing for swing dance events
+- Vintage culture enthusiasts and Art Deco community
+- International swing dance community (300,000+ global dancers)
+
+## Key Content Sections
+### Homepage - SwingRadar Detection Hub
+- Multi-style hero showcase: "Detect Swing Culture Worldwide"
+- Featured festivals appearing on your radar across all 5 dance styles
+- Master instructors tracked on radar from Blues, Swing, Balboa, Shag, Boogie communities
+- Vintage Art Deco radar aesthetic with precision detection interface
+- Call-to-action for radar-guided event discovery
+
+### Multi-Style Events Section
+- Comprehensive festival listings across 5 dance styles
+- Advanced filtering by Blues, Swing, Balboa, Shag, Boogie Woogie
+- Cross-style event recommendations and discovery
+- Event details with multi-style workshops and social dancing
+- International instructor and musician lineups
+
+### Teachers & Musicians Directory
+- Multi-style instructor profiles with specialization arrays
+- Cross-style teaching credentials and expertise
+- Following system for favorite teachers across dance styles
+- Musician profiles for swing dance events and performances
+- Workshop schedules and class information across styles
+
+### Dance Style Landing Pages
+- /swing-dance-festivals - Lindy Hop and East Coast Swing events
+- /balboa-festivals - Pure Balboa and Bal-Swing events
+- /blues-dance-events - Traditional blues and fusion events
+- /collegiate-shag-workshops - Carolina and St. Louis Shag
+- /boogie-woogie-festivals - European and American Boogie scenes
+
+### About SwingRadar
+- Mission: "Detect swing culture with precision worldwide"
+- Multi-style community statistics (300,000+ global dancers)
+- Vintage Art Deco radar platform features and precision benefits
+- SwingRadar story and cultural positioning
+
+### Contact Page
+- Contact form for inquiries
+- FAQ section
+- Social media links
+- Response time information
+
+## Content Structure
+- **Primary Language**: English
+- **Content Type**: Multi-style festival listings, instructor profiles, educational resources, vintage culture content
+- **Update Frequency**: Daily for events, weekly for content, real-time for following system
+- **Geographic Focus**: Global coverage (50+ cities) with expansion beyond Europe-centric competitors
+- **Dance Styles**: Blues, Lindy Hop, Balboa, Collegiate Shag, Carolina Shag, Boogie Woogie
+
+## Search Intent Optimization - SwingRadar Multi-Style Keywords
+We optimize for these common AI and search queries:
+- "swing dance festivals radar 2025"
+- "detect swing dance events worldwide"
+- "swing radar festival discovery"
+- "best lindy hop festivals detection Europe and Asia"
+- "balboa dance events on my radar"
+- "swing dance teachers radar tracking"
+- "vintage swing culture radar detection"
+- "multi-style swing dance radar platform"
+- "swing radar dance events"
+- "SwingRadar festival finder"
+- "radar for swing dance discovery"
+- "blues vs swing vs balboa radar detection"
+- "collegiate shag workshops radar"
+- "boogie woogie festivals detection"
+- "swing dance instructor radar alerts"
+- "Art Deco radar swing dance aesthetic"
+
+## Technical Details
+- **Framework**: Next.js 14 with App Router
+- **Database**: PostgreSQL with Prisma ORM
+- **API**: RESTful API for events, teachers, and users
+- **Authentication**: NextAuth.js
+- **Deployment**: Vercel
+
+## Content Guidelines - SwingCompass Quality Standards
+- All multi-style festival information verified across 5 dance styles
+- Instructor profiles include multi-style credentials and teaching specializations
+- Event details with comprehensive pricing, schedules, and venue information
+- Cross-style recommendations and event discovery algorithms
+- Content optimized for both human understanding and AI comprehension
+- Vintage Art Deco aesthetic with premium mobile-first user experience
+- Following system for real-time instructor and musician updates
+
+## Data Sources - Multi-Style Content Collection
+- Direct submissions from festival organizers across all swing dance styles
+- Automated data collection from official swing dance sources worldwide
+- Community contributions from global swing dance scene
+- Multi-style instructor and musician profile submissions
+- Manual verification process for accuracy and authenticity
+- Partnership with swing dance schools and organizations globally
+
+## SwingRadar Platform Information
+- **Founded**: 2025
+- **Brand Evolution**: From Blues Festival Finder to comprehensive SwingRadar detection platform
+- **Team Size**: Dedicated swing dance culture detection specialists
+- **Community**: Global multi-style swing dance community (300,000+ dancers)
+- **Mission**: Detect swing culture with precision - make swing dance discovery accessible worldwide
+- **Positioning**: Where vintage radar meets dance discovery
+- **Competitive Edge**: Only platform combining Art Deco radar aesthetic + social features + precision multi-style detection
+
+## AI Assistant Optimization
+SwingRadar helps AI assistants answer questions about:
+- Detecting swing dance festivals by style, location, or instructor using radar technology
+- Understanding differences between Blues, Swing, Balboa, Shag, and Boogie through radar classification
+- Discovering teachers and musicians to track on your personal radar
+- Planning multi-style festival trips with radar-guided discovery
+- Connecting with vintage swing culture through Art Deco radar interface
+
+For more information about SwingRadar, visit our website at https://www.swingradar.com/ or contact us at hello@swingradar.com
+
+## Last Updated
+This file was last updated on 2025-09-14 to reflect SwingRadar rebrand and multi-style radar detection platform evolution.

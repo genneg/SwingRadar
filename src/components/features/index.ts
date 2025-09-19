@@ -1,0 +1,15 @@
+// Feature Components barrel exports
+
+export { EventCard } from './EventCard'
+export { EventDetails } from './EventDetails'
+export { EventList, type SortOption, type ViewMode } from './EventList'
+export { FilterPanel } from './FilterPanel'
+export { FollowButton } from './FollowButton'
+export { FollowingManagement } from './FollowingManagement'
+export { FollowingStatus } from './FollowingStatus'
+export { FollowingList } from './FollowingList'
+export { SavedSearchModal } from './SavedSearchModal'
+export { SearchBar } from './SearchBar'
+export { SearchBarSimple } from './SearchBarSimple'
+export { SearchResults } from './SearchResults'
+export { SuggestionGroup } from './SearchSuggestions'

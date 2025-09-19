@@ -1,0 +1,40 @@
+{
+  "name": "@festival-scout/database",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared database schemas and migrations for Festival Scout",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "generate": "prisma generate",
+    "migrate": "prisma migrate dev",
+    "migrate:deploy": "prisma migrate deploy",
+    "migrate:reset": "prisma migrate reset",
+    "migrate:status": "prisma migrate status",
+    "db:push": "prisma db push",
+    "db:pull": "prisma db pull",
+    "db:ping": "prisma db ping",
+    "seed": "tsx src/seed.ts",
+    "seed:test": "tsx src/test-data.ts",
+    "seed:with-test": "tsx -e \"import('./src/seed.js').then(m => m.seedDatabase(true))\"",
+    "studio": "prisma studio",
+    "format": "prisma format",
+    "validate": "prisma validate",
+    "introspect": "prisma db pull",
+    "test:connection": "tsx src/test-connection.ts",
+    "test:models": "tsx src/test-models.ts",
+    "test:migrations": "tsx src/test-migrations.ts",
+    "test:migrations:quick": "tsx src/test-migrations.ts --no-scenarios",
+    "postinstall": "prisma generate"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.20.0",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "prisma": "^5.20.0",
+    "prisma-dbml-generator": "^0.12.0",
+    "tsx": "^4.20.5",
+    "@types/node": "^20.0.0"
+  }
+}

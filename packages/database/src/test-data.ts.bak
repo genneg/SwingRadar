@@ -1,0 +1,639 @@
+// Test data for different application scenarios
+// This file provides various test scenarios for development and testing
+
+import { db } from './index'
+import type { EventStatus, PriceType, FollowType, AttendanceStatus } from './generated'
+
+// ============================================================================
+// SCENARIO TEST DATA
+// ============================================================================
+
+/**
+ * Scenario 1: User with many followings and preferences
+ * Tests: Following system, personalized recommendations
+ */
+export async function createPowerUserScenario() {
+  console.log('Creating power user scenario...')
+  
+  // Create power user
+  const powerUser = await db.user.create({
+    data: {
+      email: 'poweruser@bluestest.com',
+      name: 'Blues Power User',
+      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+      verified: true,
+      preferences: {
+        create: {
+          emailNotifications: true,
+          pushNotifications: true,
+          newEventNotifications: true,
+          deadlineReminders: true,
+          weeklyDigest: true,
+          followingUpdates: true,
+          defaultCountry: 'US',
+          defaultCity: 'San Francisco',
+          searchRadius: 300,
+          theme: 'dark',
+          language: 'en'
+        }
+      }
+    }
+  })
+  
+  // Get all teachers and musicians to follow
+  const teachers = await db.teacher.findMany({ take: 10 })
+  const musicians = await db.musician.findMany({ take: 8 })
+  
+  // Create many following relationships
+  const followingData = [
+    ...teachers.map(teacher => ({
+      userId: powerUser.id,
+      targetType: 'TEACHER' as FollowType,
+      targetId: teacher.id
+    })),
+    ...musicians.map(musician => ({
+      userId: powerUser.id,
+      targetType: 'MUSICIAN' as FollowType,
+      targetId: musician.id
+    }))
+  ]
+  
+  await db.following.createMany({ data: followingData })
+  
+  // Update follower counts
+  await db.teacher.updateMany({
+    where: { id: { in: teachers.map(t => t.id) } },
+    data: { followerCount: { increment: 1 } }
+  })
+  await db.musician.updateMany({
+    where: { id: { in: musicians.map(m => m.id) } },
+    data: { followerCount: { increment: 1 } }
+  })
+  
+  console.log('Created power user with', followingData.length, 'following relationships')
+  return powerUser
+}
+
+/**
+ * Scenario 2: Event with complex pricing and full capacity
+ * Tests: Pricing tiers, capacity limits, registration deadlines
+ */
+export async function createComplexEventScenario() {
+  console.log('Creating complex event scenario...')
+  
+  // Get venue and participants
+  const venue = await db.venue.findFirst()
+  const teachers = await db.teacher.findMany({ take: 5 })
+  const musicians = await db.musician.findMany({ take: 3 })
+  
+  if (!venue || teachers.length === 0 || musicians.length === 0) {
+    throw new Error('Requires existing venues, teachers, and musicians')
+  }
+  
+  // Create complex event with multiple pricing tiers
+  const complexEvent = await db.event.create({
+    data: {
+      name: 'Ultimate Blues Mastery Intensive',
+      slug: 'ultimate-blues-mastery-intensive',
+      description: 'The most comprehensive blues event ever created. Five days of intensive training with world-class instructors, live performances, and exclusive masterclasses.',
+      shortDesc: 'Ultimate 5-day blues mastery intensive',
+      startDate: new Date('2024-12-01T10:00:00Z'),
+      endDate: new Date('2024-12-05T23:00:00Z'),
+      registrationDeadline: new Date('2024-11-15T23:59:59Z'),
+      venueId: venue.id,
+      website: 'https://ultimatebluesmastery.com',
+      registrationUrl: 'https://ultimatebluesmastery.com/register',
+      status: 'PUBLISHED',
+      featured: true,
+      capacity: 80,
+      imageUrl: 'https://images.unsplash.com/photo-1516450360452-9312f5e86fc7?w=800&h=600&fit=crop',
+      verified: true,
+      tags: {
+        create: [
+          { tag: 'Intensive' },
+          { tag: 'Masterclass' },
+          { tag: 'Professional' },
+          { tag: 'Advanced' },
+          { tag: 'Live Music' }
+        ]
+      },
+      teachers: {
+        create: teachers.map((teacher, index) => ({
+          teacherId: teacher.id,
+          role: index === 0 ? 'Lead Instructor' : 'Guest Teacher',
+          workshops: [`Workshop ${index + 1}`, `Masterclass ${index + 1}`],
+          level: index < 2 ? 'Advanced' : 'Intermediate'
+        }))
+      },
+      musicians: {
+        create: musicians.map((musician, index) => ({
+          musicianId: musician.id,
+          role: index === 0 ? 'Headliner' : 'Featured Artist',
+          setTimes: [`Day ${index + 1}: 8:00 PM`, `Day ${index + 2}: 9:30 PM`]
+        }))
+      },
+      prices: {
+        create: [
+          {
+            type: 'EARLY_BIRD' as PriceType,
+            amount: 399,
+            currency: 'USD',
+            deadline: new Date('2024-10-01T23:59:59Z'),
+            description: 'Super early bird - limited to first 20 registrations'
+          },
+          {
+            type: 'REGULAR' as PriceType,
+            amount: 499,
+            currency: 'USD',
+            deadline: new Date('2024-11-01T23:59:59Z'),
+            description: 'Regular price until November 1st'
+          },
+          {
+            type: 'LATE' as PriceType,
+            amount: 599,
+            currency: 'USD',
+            description: 'Late registration fee applies'
+          },
+          {
+            type: 'STUDENT' as PriceType,
+            amount: 299,
+            currency: 'USD',
+            description: 'Full-time student discount with valid ID'
+          },
+          {
+            type: 'VIP' as PriceType,
+            amount: 899,
+            currency: 'USD',
+            description: 'VIP package with private lessons and exclusive events'
+          }
+        ]
+      }
+    }
+  })
+  
+  console.log('Created complex event with multiple pricing tiers')
+  return complexEvent
+}
+
+/**
+ * Scenario 3: Event with high engagement (saves, attendances, reviews)
+ * Tests: Event interactions, user engagement features
+ */
+export async function createHighEngagementEventScenario() {
+  console.log('Creating high engagement event scenario...')
+  
+  // Get existing event and users
+  const event = await db.event.findFirst({ where: { featured: true } })
+  const users = await db.user.findMany({ take: 15 })
+  
+  if (!event || users.length === 0) {
+    throw new Error('Requires existing event and users')
+  }
+  
+  // Create event saves
+  const saveData = users.slice(0, 10).map(user => ({
+    userId: user.id,
+    eventId: event.id
+  }))
+  
+  await db.eventSave.createMany({ data: saveData })
+  
+  // Create event attendances with different statuses
+  const attendanceData = users.slice(0, 12).map((user, index) => ({
+    userId: user.id,
+    eventId: event.id,
+    status: (['GOING', 'INTERESTED', 'MAYBE', 'GOING', 'INTERESTED'] as AttendanceStatus[])[index % 5]
+  }))
+  
+  await db.eventAttendance.createMany({ data: attendanceData })
+  
+  // Create event reviews (only for users marked as 'GOING')
+  const goingUsers = users.slice(0, 8)
+  const reviewData = goingUsers.map((user, index) => ({
+    userId: user.id,
+    eventId: event.id,
+    rating: [5, 4, 5, 3, 4, 5, 4, 5][index] || 4,
+    review: [
+      'Absolutely amazing experience! The instructors were world-class.',
+      'Great event but venue was a bit crowded. Music was fantastic.',
+      'Perfect weekend of blues! Will definitely attend again.',
+      'Good workshops but could use more beginner-friendly content.',
+      'Loved the live music and social dancing opportunities.',
+      'Excellent organization and beautiful venue. Highly recommend!',
+      'Amazing teachers and great community atmosphere.',
+      'Perfect mix of learning and social dancing. Five stars!'
+    ][index] || 'Great event, really enjoyed it!'
+  }))
+  
+  await db.eventReview.createMany({ data: reviewData })
+  
+  console.log('Created high engagement event with saves, attendances, and reviews')
+  return { event, saves: saveData.length, attendances: attendanceData.length, reviews: reviewData.length }
+}
+
+/**
+ * Scenario 4: Different event statuses and states
+ * Tests: Event lifecycle, status filtering, archiving
+ */
+export async function createEventLifecycleScenario() {
+  console.log('Creating event lifecycle scenario...')
+  
+  const venue = await db.venue.findFirst()
+  const teacher = await db.teacher.findFirst()
+  const musician = await db.musician.findFirst()
+  
+  if (!venue || !teacher || !musician) {
+    throw new Error('Requires existing venue, teacher, and musician')
+  }
+  
+  // Create events in different states
+  const eventData = [
+    {
+      name: 'Draft Blues Workshop',
+      slug: 'draft-blues-workshop',
+      description: 'This event is still in planning phase',
+      startDate: new Date('2024-12-15T19:00:00Z'),
+      endDate: new Date('2024-12-15T23:00:00Z'),
+      status: 'DRAFT' as EventStatus,
+      featured: false
+    },
+    {
+      name: 'Cancelled Blues Event',
+      slug: 'cancelled-blues-event',
+      description: 'Unfortunately this event had to be cancelled',
+      startDate: new Date('2024-08-20T19:00:00Z'),
+      endDate: new Date('2024-08-22T23:00:00Z'),
+      status: 'CANCELLED' as EventStatus,
+      featured: false
+    },
+    {
+      name: 'Completed Blues Festival',
+      slug: 'completed-blues-festival',
+      description: 'This successful event has already taken place',
+      startDate: new Date('2024-03-01T19:00:00Z'),
+      endDate: new Date('2024-03-03T23:00:00Z'),
+      status: 'COMPLETED' as EventStatus,
+      featured: false
+    },
+    {
+      name: 'Archived Historical Event',
+      slug: 'archived-historical-event',
+      description: 'Historical event kept for records',
+      startDate: new Date('2023-06-15T19:00:00Z'),
+      endDate: new Date('2023-06-18T23:00:00Z'),
+      status: 'ARCHIVED' as EventStatus,
+      featured: false
+    }
+  ]
+  
+  const events = await Promise.all(
+    eventData.map(data => 
+      db.event.create({
+        data: {
+          ...data,
+          venueId: venue.id,
+          shortDesc: data.description.substring(0, 100),
+          teachers: {
+            create: [{ teacherId: teacher.id }]
+          },
+          musicians: {
+            create: [{ musicianId: musician.id }]
+          },
+          prices: {
+            create: [{
+              type: 'REGULAR' as PriceType,
+              amount: 100,
+              currency: 'USD'
+            }]
+          }
+        }
+      })
+    )
+  )
+  
+  console.log('Created events in different lifecycle states')
+  return events
+}
+
+/**
+ * Scenario 5: International events with different currencies
+ * Tests: Multi-currency support, international venues
+ */
+export async function createInternationalEventsScenario() {
+  console.log('Creating international events scenario...')
+  
+  // Create international venues
+  const internationalVenues = await Promise.all([
+    db.venue.create({
+      data: {
+        name: 'Tokyo Blues Studio',
+        address: '1-1-1 Shibuya',
+        city: 'Tokyo',
+        country: 'Japan',
+        postalCode: '150-0002',
+        latitude: 35.6762,
+        longitude: 139.6503,
+        capacity: 120,
+        hasParking: false,
+        hasAirCon: true,
+        hasWifi: true,
+        wheelchairAccess: true
+      }
+    }),
+    db.venue.create({
+      data: {
+        name: 'Buenos Aires Tango & Blues',
+        address: 'Av. Corrientes 1234',
+        city: 'Buenos Aires',
+        country: 'Argentina',
+        postalCode: 'C1043',
+        latitude: -34.6037,
+        longitude: -58.3816,
+        capacity: 200,
+        hasParking: false,
+        hasAirCon: true,
+        hasWifi: true,
+        wheelchairAccess: false
+      }
+    })
+  ])
+  
+  const teacher = await db.teacher.findFirst()
+  const musician = await db.musician.findFirst()
+  
+  if (!teacher || !musician) {
+    throw new Error('Requires existing teacher and musician')
+  }
+  
+  // Create international events
+  const internationalEvents = await Promise.all([
+    db.event.create({
+      data: {
+        name: 'Tokyo Blues Experience',
+        slug: 'tokyo-blues-experience',
+        description: 'Unique fusion of Japanese precision and American blues tradition',
+        shortDesc: 'East meets West blues experience in Tokyo',
+        startDate: new Date('2024-10-10T10:00:00Z'),
+        endDate: new Date('2024-10-13T22:00:00Z'),
+        venueId: internationalVenues[0].id,
+        status: 'PUBLISHED',
+        featured: true,
+        teachers: {
+          create: [{ teacherId: teacher.id }]
+        },
+        musicians: {
+          create: [{ musicianId: musician.id }]
+        },
+        prices: {
+          create: [
+            {
+              type: 'EARLY_BIRD' as PriceType,
+              amount: 25000,
+              currency: 'JPY',
+              deadline: new Date('2024-09-10T23:59:59Z')
+            },
+            {
+              type: 'REGULAR' as PriceType,
+              amount: 32000,
+              currency: 'JPY'
+            }
+          ]
+        },
+        tags: {
+          create: [
+            { tag: 'International' },
+            { tag: 'Cultural Fusion' },
+            { tag: 'Asia' }
+          ]
+        }
+      }
+    }),
+    db.event.create({
+      data: {
+        name: 'Buenos Aires Blues & Tango',
+        slug: 'buenos-aires-blues-tango',
+        description: 'Passionate combination of Argentine tango and American blues',
+        shortDesc: 'Tango meets blues in passionate Buenos Aires',
+        startDate: new Date('2024-11-05T18:00:00Z'),
+        endDate: new Date('2024-11-08T23:00:00Z'),
+        venueId: internationalVenues[1].id,
+        status: 'PUBLISHED',
+        featured: true,
+        teachers: {
+          create: [{ teacherId: teacher.id }]
+        },
+        musicians: {
+          create: [{ musicianId: musician.id }]
+        },
+        prices: {
+          create: [
+            {
+              type: 'EARLY_BIRD' as PriceType,
+              amount: 15000,
+              currency: 'ARS',
+              deadline: new Date('2024-10-05T23:59:59Z')
+            },
+            {
+              type: 'REGULAR' as PriceType,
+              amount: 20000,
+              currency: 'ARS'
+            }
+          ]
+        },
+        tags: {
+          create: [
+            { tag: 'International' },
+            { tag: 'Tango Fusion' },
+            { tag: 'South America' }
+          ]
+        }
+      }
+    })
+  ])
+  
+  console.log('Created international events with different currencies')
+  return { venues: internationalVenues, events: internationalEvents }
+}
+
+/**
+ * Scenario 6: Notification system test data
+ * Tests: Notification creation, delivery, and management
+ */
+export async function createNotificationScenario() {
+  console.log('Creating notification scenario...')
+  
+  const users = await db.user.findMany({ take: 3 })
+  const events = await db.event.findMany({ take: 2 })
+  
+  if (users.length === 0 || events.length === 0) {
+    throw new Error('Requires existing users and events')
+  }
+  
+  // Create various notification types
+  const notificationData = [
+    {
+      userId: users[0].id,
+      type: 'NEW_EVENT' as const,
+      title: 'New Event Alert',
+      message: 'A new blues event has been added in your area!',
+      data: { eventId: events[0].id, eventName: events[0].name },
+      read: false
+    },
+    {
+      userId: users[0].id,
+      type: 'DEADLINE_REMINDER' as const,
+      title: 'Registration Deadline Soon',
+      message: 'Registration for "San Francisco Blues Weekend" closes in 3 days!',
+      data: { eventId: events[0].id, daysLeft: 3 },
+      read: false
+    },
+    {
+      userId: users[1].id,
+      type: 'FOLLOWED_UPDATE' as const,
+      title: 'Teacher Update',
+      message: 'Sarah Mitchell has been added to a new event!',
+      data: { teacherId: 'teacher-id', eventId: events[1].id },
+      read: true
+    },
+    {
+      userId: users[1].id,
+      type: 'EVENT_CANCELLED' as const,
+      title: 'Event Cancelled',
+      message: 'Unfortunately, the Chicago Blues Workshop has been cancelled.',
+      data: { eventId: events[1].id, reason: 'Venue unavailable' },
+      read: false
+    },
+    {
+      userId: users[2].id,
+      type: 'WEEKLY_DIGEST' as const,
+      title: 'Weekly Blues Digest',
+      message: 'Your weekly roundup of blues events and updates.',
+      data: { eventCount: 5, newFollowers: 2 },
+      read: true
+    }
+  ]
+  
+  const notifications = await Promise.all(
+    notificationData.map(data => db.notification.create({ data }))
+  )
+  
+  console.log('Created notification test data')
+  return notifications
+}
+
+// ============================================================================
+// MAIN TEST DATA SETUP FUNCTION
+// ============================================================================
+
+export async function setupTestScenarios() {
+  try {
+    console.log('🧪 Setting up test scenarios...')
+    
+    // Ensure we have basic seed data first
+    const venueCount = await db.venue.count()
+    const teacherCount = await db.teacher.count()
+    const musicianCount = await db.musician.count()
+    
+    if (venueCount === 0 || teacherCount === 0 || musicianCount === 0) {
+      console.log('⚠️  Warning: Basic seed data missing. Run seedDatabase() first.')
+      return
+    }
+    
+    // Create test scenarios
+    const powerUser = await createPowerUserScenario()
+    const complexEvent = await createComplexEventScenario()
+    const engagementResults = await createHighEngagementEventScenario()
+    const lifecycleEvents = await createEventLifecycleScenario()
+    const internationalResults = await createInternationalEventsScenario()
+    const notifications = await createNotificationScenario()
+    
+    console.log('✅ Test scenarios created successfully!')
+    console.log({
+      powerUser: powerUser.name,
+      complexEvent: complexEvent.name,
+      engagementEvent: engagementResults.event.name,
+      lifecycleEvents: lifecycleEvents.length,
+      internationalEvents: internationalResults.events.length,
+      notifications: notifications.length
+    })
+    
+  } catch (error) {
+    console.error('❌ Error setting up test scenarios:', error)
+    throw error
+  }
+}
+
+// ============================================================================
+// CLEANUP FUNCTION
+// ============================================================================
+
+export async function cleanupTestData() {
+  try {
+    console.log('🧹 Cleaning up test data...')
+    
+    // Delete test scenario data (but keep basic seed data)
+    await db.notification.deleteMany()
+    await db.eventReview.deleteMany()
+    await db.eventAttendance.deleteMany()
+    await db.eventSave.deleteMany()
+    await db.following.deleteMany()
+    await db.eventPrice.deleteMany()
+    await db.eventTag.deleteMany()
+    await db.eventTeacher.deleteMany()
+    await db.eventMusician.deleteMany()
+    
+    // Delete events created by scenarios
+    await db.event.deleteMany({
+      where: {
+        slug: {
+          in: [
+            'ultimate-blues-mastery-intensive',
+            'draft-blues-workshop',
+            'cancelled-blues-event',
+            'completed-blues-festival',
+            'archived-historical-event',
+            'tokyo-blues-experience',
+            'buenos-aires-blues-tango'
+          ]
+        }
+      }
+    })
+    
+    // Delete international venues
+    await db.venue.deleteMany({
+      where: {
+        name: {
+          in: ['Tokyo Blues Studio', 'Buenos Aires Tango & Blues']
+        }
+      }
+    })
+    
+    // Delete test users
+    await db.user.deleteMany({
+      where: {
+        email: {
+          in: ['poweruser@bluestest.com']
+        }
+      }
+    })
+    
+    console.log('✅ Test data cleaned up successfully!')
+    
+  } catch (error) {
+    console.error('❌ Error cleaning up test data:', error)
+    throw error
+  }
+}
+
+// Run test scenarios if called directly
+if (require.main === module) {
+  setupTestScenarios()
+    .then(() => {
+      console.log('Test scenarios setup completed')
+      process.exit(0)
+    })
+    .catch((error) => {
+      console.error('Test scenarios setup failed:', error)
+      process.exit(1)
+    })
+}

@@ -1,0 +1,117 @@
+# SwingRadar - robots.txt
+# Website: https://www.swingradar.com/
+# Multi-style swing dance detection platform: Blues, Swing, Balboa, Shag, Boogie Woogie
+
+User-agent: *
+Allow: /
+
+# Dynamic sitemap locations (preferred)
+Sitemap: https://www.swingradar.com/api/sitemap.xml
+Sitemap: https://www.swingradar.com/api/sitemap-index.xml
+
+# Static sitemap (fallback)
+Sitemap: https://www.swingradar.com/sitemap.xml
+
+# Crawl delay to avoid server overload
+Crawl-delay: 1
+
+# Block common bot paths
+Disallow: /api/
+Disallow: /_next/
+Disallow: /auth/
+Disallow: /dashboard/
+Disallow: /profile/
+Disallow: /admin/
+Disallow: /demo-*
+Disallow: /test-*
+
+# Allow specific API endpoints for search engines
+User-agent: Googlebot
+Allow: /api/events/
+Allow: /api/teachers/
+Allow: /api/musicians/
+Allow: /api/sitemap.xml
+Allow: /api/sitemap-index.xml
+Allow: /api/search/
+
+User-agent: Bingbot
+Allow: /api/events/
+Allow: /api/teachers/
+Allow: /api/musicians/
+Allow: /api/sitemap.xml
+Allow: /api/sitemap-index.xml
+Allow: /api/search/
+
+# Block bad bots
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+# Additional SEO directives
+User-agent: *
+Disallow: /*.json$
+Disallow: /*.js$
+Disallow: /*.css$
+
+# Allow important files
+Allow: /sitemap.xml
+Allow: /robots.txt
+Allow: /favicon.ico
+Allow: /manifest.json
+Allow: /llms.txt
+
+# LLM optimization file for AI search engines
+User-agent: *
+Allow: /llms.txt
+
+# AI crawlers - SwingRadar multi-style content optimization
+User-agent: GPTBot
+Allow: /
+Allow: /swing-dance-festivals/
+Allow: /balboa-festivals/
+Allow: /lindy-hop-events/
+Allow: /collegiate-shag-workshops/
+Allow: /boogie-woogie-festivals/
+Crawl-delay: 1
+
+User-agent: ChatGPT-User
+Allow: /
+Allow: /api/search/
+
+User-agent: Claude-Web
+Allow: /
+Allow: /api/search/
+Crawl-delay: 1
+
+User-agent: CCBot
+Allow: /
+Allow: /api/search/
+Crawl-delay: 2
+
+User-agent: Bard
+Allow: /
+Crawl-delay: 1
+
+User-agent: Gemini
+Allow: /
+Crawl-delay: 1
+
+# Additional AI search engines
+User-agent: PerplexityBot
+Allow: /
+Crawl-delay: 1
+
+User-agent: You.com
+Allow: /
+Crawl-delay: 1

@@ -1,0 +1,437 @@
+// Database model validation schemas using Zod
+// These provide runtime type checking and validation for all database operations
+
+import { z } from 'zod'
+
+// ============================================================================
+// ENUM SCHEMAS
+// ============================================================================
+
+export const EventStatusSchema = z.enum(['DRAFT', 'PUBLISHED', 'CANCELLED', 'COMPLETED', 'ARCHIVED'])
+export const PriceTypeSchema = z.enum(['EARLY_BIRD', 'REGULAR', 'LATE', 'STUDENT', 'LOCAL', 'VIP', 'DONATION'])
+export const FollowTypeSchema = z.enum(['TEACHER', 'MUSICIAN'])
+export const AttendanceStatusSchema = z.enum(['INTERESTED', 'GOING', 'MAYBE', 'NOT_GOING'])
+export const NotificationTypeSchema = z.enum(['NEW_EVENT', 'DEADLINE_REMINDER', 'FOLLOWED_UPDATE', 'EVENT_CANCELLED', 'EVENT_UPDATED', 'WEEKLY_DIGEST'])
+
+// ============================================================================
+// USER MODEL SCHEMAS
+// ============================================================================
+
+export const UserPreferencesSchema = z.object({
+  id: z.string().cuid().optional(),
+  userId: z.string().cuid(),
+  
+  // Notification settings
+  emailNotifications: z.boolean().default(true),
+  pushNotifications: z.boolean().default(true),
+  newEventNotifications: z.boolean().default(true),
+  deadlineReminders: z.boolean().default(true),
+  weeklyDigest: z.boolean().default(true),
+  followingUpdates: z.boolean().default(true),
+
+  // Location preferences
+  defaultCountry: z.string().min(2).max(2).optional(), // ISO country code
+  defaultCity: z.string().min(1).max(100).optional(),
+  searchRadius: z.number().int().min(1).max(10000).default(100), // km
+
+  // UI preferences
+  theme: z.enum(['light', 'dark', 'auto']).default('light'),
+  language: z.string().min(2).max(5).default('en'), // Language code
+  timezone: z.string().optional(), // IANA timezone
+
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional()
+})
+
+export const UserCreateSchema = z.object({
+  email: z.string().email().max(255),
+  name: z.string().min(1).max(100),
+  avatar: z.string().url().optional(),
+  verified: z.boolean().default(false)
+})
+
+export const UserUpdateSchema = UserCreateSchema.partial()
+
+export const UserSchema = UserCreateSchema.extend({
+  id: z.string().cuid(),
+  createdAt: z.date(),
+  updatedAt: z.date()
+})
+
+// ============================================================================
+// VENUE MODEL SCHEMAS
+// ============================================================================
+
+export const VenueCreateSchema = z.object({
+  name: z.string().min(1).max(200),
+  address: z.string().min(1).max(500),
+  city: z.string().min(1).max(100),
+  state: z.string().min(1).max(100).optional(),
+  country: z.string().min(1).max(100),
+  postalCode: z.string().max(20).optional(),
+  
+  // Geographic coordinates (required for location-based search)
+  latitude: z.number().min(-90).max(90),
+  longitude: z.number().min(-180).max(180),
+  
+  // Additional information
+  website: z.string().url().optional(),
+  phone: z.string().max(50).optional(),
+  email: z.string().email().optional(),
+  capacity: z.number().int().positive().optional(),
+  description: z.string().max(2000).optional(),
+  
+  // Venue amenities
+  hasParking: z.boolean().default(false),
+  hasAirCon: z.boolean().default(false),
+  hasWifi: z.boolean().default(false),
+  wheelchairAccess: z.boolean().default(false)
+})
+
+export const VenueUpdateSchema = VenueCreateSchema.partial()
+
+export const VenueSchema = VenueCreateSchema.extend({
+  id: z.string().cuid(),
+  createdAt: z.date(),
+  updatedAt: z.date()
+})
+
+// ============================================================================
+// TEACHER MODEL SCHEMAS
+// ============================================================================
+
+export const TeacherSocialMediaSchema = z.object({
+  facebook: z.string().url().optional(),
+  instagram: z.string().url().optional(),
+  youtube: z.string().url().optional(),
+  tiktok: z.string().url().optional(),
+  linkedin: z.string().url().optional()
+})
+
+export const TeacherCreateSchema = z.object({
+  name: z.string().min(1).max(100),
+  slug: z.string().min(1).max(150).regex(/^[a-z0-9-]+$/), // URL-safe slug
+  bio: z.string().max(2000).optional(),
+  avatar: z.string().url().optional(),
+  verified: z.boolean().default(false),
+  
+  // Professional information
+  specialties: z.array(z.string().min(1).max(100)).default([]),
+  yearsActive: z.number().int().min(0).max(100).optional(),
+  
+  // Contact and social
+  website: z.string().url().optional(),
+  email: z.string().email().optional(),
+  socialMedia: TeacherSocialMediaSchema.optional()
+})
+
+export const TeacherUpdateSchema = TeacherCreateSchema.partial()
+
+export const TeacherSchema = TeacherCreateSchema.extend({
+  id: z.string().cuid(),
+  followerCount: z.number().int().min(0).default(0),
+  eventCount: z.number().int().min(0).default(0),
+  createdAt: z.date(),
+  updatedAt: z.date()
+})
+
+// ============================================================================
+// MUSICIAN MODEL SCHEMAS
+// ============================================================================
+
+export const MusicianSocialMediaSchema = z.object({
+  facebook: z.string().url().optional(),
+  instagram: z.string().url().optional(),
+  youtube: z.string().url().optional(),
+  spotify: z.string().url().optional(),
+  soundcloud: z.string().url().optional(),
+  bandcamp: z.string().url().optional()
+})
+
+export const MusicianCreateSchema = z.object({
+  name: z.string().min(1).max(100),
+  slug: z.string().min(1).max(150).regex(/^[a-z0-9-]+$/), // URL-safe slug
+  bio: z.string().max(2000).optional(),
+  avatar: z.string().url().optional(),
+  verified: z.boolean().default(false),
+  
+  // Musical information
+  genres: z.array(z.string().min(1).max(50)).default([]),
+  instruments: z.array(z.string().min(1).max(50)).default([]),
+  yearsActive: z.number().int().min(0).max(100).optional(),
+  
+  // Contact and social
+  website: z.string().url().optional(),
+  email: z.string().email().optional(),
+  socialMedia: MusicianSocialMediaSchema.optional()
+})
+
+export const MusicianUpdateSchema = MusicianCreateSchema.partial()
+
+export const MusicianSchema = MusicianCreateSchema.extend({
+  id: z.string().cuid(),
+  followerCount: z.number().int().min(0).default(0),
+  eventCount: z.number().int().min(0).default(0),
+  createdAt: z.date(),
+  updatedAt: z.date()
+})
+
+// ============================================================================
+// EVENT MODEL SCHEMAS
+// ============================================================================
+
+export const EventPriceSchema = z.object({
+  id: z.string().cuid().optional(),
+  type: PriceTypeSchema,
+  amount: z.number().positive(), // Decimal stored as number
+  currency: z.string().length(3).default('USD'), // ISO currency code
+  deadline: z.date().optional(),
+  description: z.string().max(500).optional(),
+  available: z.boolean().default(true)
+})
+
+const BaseEventSchema = z.object({
+  name: z.string().min(1).max(200),
+  slug: z.string().min(1).max(250).regex(/^[a-z0-9-]+$/), // URL-safe slug
+  description: z.string().max(5000).optional(),
+  shortDesc: z.string().max(255).optional(),
+  
+  // Dates and timing (with validation)
+  startDate: z.date(),
+  endDate: z.date(),
+  registrationDeadline: z.date().optional(),
+  publicationDate: z.date().default(() => new Date()),
+  
+  // Status and metadata
+  status: EventStatusSchema.default('DRAFT'),
+  featured: z.boolean().default(false),
+  capacity: z.number().int().positive().optional(),
+  
+  // Location (required)
+  venueId: z.string().cuid(),
+  
+  // Content
+  website: z.string().url().optional(),
+  registrationUrl: z.string().url().optional(),
+  imageUrl: z.string().url().optional(),
+  tags: z.array(z.string().min(1).max(50)).default([]),
+  
+  // Relationships
+  teachers: z.array(z.string().cuid()).default([]),
+  musicians: z.array(z.string().cuid()).default([]),
+  prices: z.array(EventPriceSchema).default([]),
+  
+  // Meta information
+  sourceUrl: z.string().url().optional(), // For scraped events
+  verified: z.boolean().default(false)
+})
+
+export const EventCreateSchema = BaseEventSchema.refine(
+  (data) => data.endDate >= data.startDate,
+  {
+    message: "End date must be after start date",
+    path: ["endDate"]
+  }
+).refine(
+  (data) => !data.registrationDeadline || data.registrationDeadline <= data.startDate,
+  {
+    message: "Registration deadline must be before start date",
+    path: ["registrationDeadline"]
+  }
+)
+
+export const EventUpdateSchema = BaseEventSchema.partial()
+
+export const EventSchema = BaseEventSchema.extend({
+  id: z.string().cuid(),
+  createdById: z.string().cuid().optional(),
+  scrapedAt: z.date().optional(),
+  createdAt: z.date(),
+  updatedAt: z.date()
+})
+
+// ============================================================================
+// FOLLOWING SYSTEM SCHEMAS
+// ============================================================================
+
+export const FollowingCreateSchema = z.object({
+  userId: z.string().cuid(),
+  targetType: FollowTypeSchema,
+  targetId: z.string().cuid()
+})
+
+export const FollowingSchema = FollowingCreateSchema.extend({
+  id: z.string().cuid(),
+  createdAt: z.date()
+})
+
+// ============================================================================
+// EVENT INTERACTION SCHEMAS
+// ============================================================================
+
+export const EventSaveSchema = z.object({
+  id: z.string().cuid().optional(),
+  userId: z.string().cuid(),
+  eventId: z.string().cuid(),
+  createdAt: z.date().optional()
+})
+
+export const EventAttendanceSchema = z.object({
+  id: z.string().cuid().optional(),
+  userId: z.string().cuid(),
+  eventId: z.string().cuid(),
+  status: AttendanceStatusSchema.default('INTERESTED'),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional()
+})
+
+export const EventReviewSchema = z.object({
+  id: z.string().cuid().optional(),
+  userId: z.string().cuid(),
+  eventId: z.string().cuid(),
+  rating: z.number().int().min(1).max(5),
+  review: z.string().max(2000).optional(),
+  createdAt: z.date().optional(),
+  updatedAt: z.date().optional()
+})
+
+// ============================================================================
+// SEARCH AND FILTER SCHEMAS
+// ============================================================================
+
+export const SearchFiltersSchema = z.object({
+  query: z.string().optional(),
+  dateRange: z.object({
+    start: z.date(),
+    end: z.date()
+  }).optional(),
+  location: z.object({
+    city: z.string().optional(),
+    country: z.string().optional(),
+    radius: z.number().positive().optional(),
+    coordinates: z.object({
+      lat: z.number().min(-90).max(90),
+      lng: z.number().min(-180).max(180)
+    }).optional()
+  }).optional(),
+  teachers: z.array(z.string().cuid()).optional(),
+  musicians: z.array(z.string().cuid()).optional(),
+  priceRange: z.object({
+    min: z.number().min(0),
+    max: z.number().positive()
+  }).optional(),
+  tags: z.array(z.string()).optional(),
+  featured: z.boolean().optional(),
+  status: EventStatusSchema.optional()
+})
+
+export const SortOptionsSchema = z.object({
+  field: z.enum(['date', 'name', 'price', 'distance', 'relevance']),
+  direction: z.enum(['asc', 'desc'])
+})
+
+// ============================================================================
+// PAGINATION SCHEMA
+// ============================================================================
+
+export const PaginationSchema = z.object({
+  page: z.number().int().min(1).default(1),
+  limit: z.number().int().min(1).max(100).default(20),
+  offset: z.number().int().min(0).optional()
+})
+
+// ============================================================================
+// API RESPONSE SCHEMAS
+// ============================================================================
+
+export const ApiResponseSchema = <T extends z.ZodType>(dataSchema: T) => z.object({
+  data: dataSchema,
+  success: z.boolean(),
+  message: z.string().optional(),
+  error: z.string().optional()
+})
+
+export const PaginatedResponseSchema = <T extends z.ZodType>(dataSchema: T) => z.object({
+  data: z.array(dataSchema),
+  pagination: z.object({
+    page: z.number().int(),
+    limit: z.number().int(),
+    total: z.number().int(),
+    totalPages: z.number().int()
+  })
+})
+
+// ============================================================================
+// UTILITY FUNCTIONS
+// ============================================================================
+
+/**
+ * Generate URL-safe slug from string
+ */
+export function generateSlug(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters
+    .replace(/\s+/g, '-')        // Replace spaces with hyphens
+    .replace(/-+/g, '-')         // Replace multiple hyphens with single
+    .replace(/^-|-$/g, '')       // Remove leading/trailing hyphens
+}
+
+/**
+ * Validate email format
+ */
+export function isValidEmail(email: string): boolean {
+  return z.string().email().safeParse(email).success
+}
+
+/**
+ * Validate URL format
+ */
+export function isValidUrl(url: string): boolean {
+  return z.string().url().safeParse(url).success
+}
+
+/**
+ * Validate coordinate ranges
+ */
+export function isValidCoordinates(lat: number, lng: number): boolean {
+  return lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180
+}
+
+// ============================================================================
+// TYPE EXPORTS
+// ============================================================================
+
+// Export inferred types for TypeScript usage
+export type UserPreferences = z.infer<typeof UserPreferencesSchema>
+export type UserCreate = z.infer<typeof UserCreateSchema>
+export type UserUpdate = z.infer<typeof UserUpdateSchema>
+export type User = z.infer<typeof UserSchema>
+
+export type VenueCreate = z.infer<typeof VenueCreateSchema>
+export type VenueUpdate = z.infer<typeof VenueUpdateSchema>
+export type Venue = z.infer<typeof VenueSchema>
+
+export type TeacherCreate = z.infer<typeof TeacherCreateSchema>
+export type TeacherUpdate = z.infer<typeof TeacherUpdateSchema>
+export type Teacher = z.infer<typeof TeacherSchema>
+
+export type MusicianCreate = z.infer<typeof MusicianCreateSchema>
+export type MusicianUpdate = z.infer<typeof MusicianUpdateSchema>
+export type Musician = z.infer<typeof MusicianSchema>
+
+export type EventCreate = z.infer<typeof EventCreateSchema>
+export type EventUpdate = z.infer<typeof EventUpdateSchema>
+export type Event = z.infer<typeof EventSchema>
+export type EventPrice = z.infer<typeof EventPriceSchema>
+
+export type Following = z.infer<typeof FollowingSchema>
+export type FollowingCreate = z.infer<typeof FollowingCreateSchema>
+
+export type EventSave = z.infer<typeof EventSaveSchema>
+export type EventAttendance = z.infer<typeof EventAttendanceSchema>
+export type EventReview = z.infer<typeof EventReviewSchema>
+
+export type SearchFilters = z.infer<typeof SearchFiltersSchema>
+export type SortOptions = z.infer<typeof SortOptionsSchema>
+export type Pagination = z.infer<typeof PaginationSchema>

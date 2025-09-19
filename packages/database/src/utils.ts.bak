@@ -1,0 +1,506 @@
+// Database utility functions
+
+import { db } from './index'
+import type { User, Event, Teacher, Musician, Venue, EventStatus, PriceType } from './generated'
+
+// ============================================================================
+// USER UTILITIES
+// ============================================================================
+
+export async function createUser(data: {
+  email: string
+  name: string
+  avatar?: string
+}) {
+  return await db.user.create({
+    data: {
+      ...data,
+      preferences: {
+        create: {
+          emailNotifications: true,
+          pushNotifications: true,
+          newEventNotifications: true,
+          deadlineReminders: true,
+          weeklyDigest: true,
+          followingUpdates: true,
+        }
+      }
+    },
+    include: {
+      preferences: true
+    }
+  })
+}
+
+export async function getUserWithPreferences(userId: string) {
+  return await db.user.findUnique({
+    where: { id: userId },
+    include: {
+      preferences: true,
+      following: true
+    }
+  })
+}
+
+// ============================================================================
+// EVENT UTILITIES
+// ============================================================================
+
+export async function createEvent(data: {
+  name: string
+  description?: string
+  startDate: Date
+  endDate: Date
+  venueId: string
+  status?: EventStatus
+  prices?: Array<{
+    type: PriceType
+    amount: number
+    currency?: string
+    deadline?: Date
+    description?: string
+  }>
+  tags?: string[]
+  teachers?: string[]
+  musicians?: string[]
+}) {
+  // Generate slug from name
+  const slug = data.name.toLowerCase()
+    .replace(/[^a-z0-9\s-]/g, '')
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
+    .trim()
+
+  // Create event with related data
+  return await db.event.create({
+    data: {
+      name: data.name,
+      slug,
+      description: data.description,
+      startDate: data.startDate,
+      endDate: data.endDate,
+      venueId: data.venueId,
+      status: data.status || 'PUBLISHED',
+      
+      // Create prices
+      ...(data.prices && {
+        prices: {
+          create: data.prices.map(price => ({
+            type: price.type,
+            amount: price.amount,
+            currency: price.currency || 'USD',
+            deadline: price.deadline,
+            description: price.description
+          }))
+        }
+      }),
+      
+      // Create tags
+      ...(data.tags && {
+        tags: {
+          create: data.tags.map(tag => ({ tag }))
+        }
+      }),
+      
+      // Associate teachers
+      ...(data.teachers && {
+        teachers: {
+          create: data.teachers.map(teacherId => ({ teacherId }))
+        }
+      }),
+      
+      // Associate musicians
+      ...(data.musicians && {
+        musicians: {
+          create: data.musicians.map(musicianId => ({ musicianId }))
+        }
+      })
+    },
+    include: {
+      venue: true,
+      prices: true,
+      tags: true,
+      teachers: {
+        include: { teacher: true }
+      },
+      musicians: {
+        include: { musician: true }
+      }
+    }
+  })
+}
+
+export async function getUpcomingEvents(options: {
+  limit?: number
+  offset?: number
+  city?: string
+  country?: string
+  featured?: boolean
+} = {}) {
+  const { limit = 20, offset = 0, city, country, featured } = options
+
+  return await db.event.findMany({
+    where: {
+      status: 'PUBLISHED',
+      startDate: { gte: new Date() },
+      ...(featured && { featured: true }),
+      ...(city || country) && {
+        venue: {
+          ...(city && { city }),
+          ...(country && { country })
+        }
+      }
+    },
+    include: {
+      venue: true,
+      prices: {
+        orderBy: { amount: 'asc' },
+        take: 1
+      },
+      teachers: {
+        include: { teacher: true }
+      },
+      musicians: {
+        include: { musician: true }
+      },
+      tags: true,
+      _count: {
+        select: {
+          saves: true,
+          attendances: true
+        }
+      }
+    },
+    orderBy: [
+      { featured: 'desc' },
+      { startDate: 'asc' }
+    ],
+    skip: offset,
+    take: limit
+  })
+}
+
+// ============================================================================
+// SEARCH UTILITIES
+// ============================================================================
+
+export async function searchEvents(query: {
+  text?: string
+  dateStart?: Date
+  dateEnd?: Date
+  city?: string
+  country?: string
+  teacherIds?: string[]
+  musicianIds?: string[]
+  tags?: string[]
+  priceMin?: number
+  priceMax?: number
+  limit?: number
+  offset?: number
+}) {
+  const {
+    text,
+    dateStart,
+    dateEnd,
+    city,
+    country,
+    teacherIds,
+    musicianIds,
+    tags,
+    priceMin,
+    priceMax,
+    limit = 20,
+    offset = 0
+  } = query
+
+  return await db.event.findMany({
+    where: {
+      status: 'PUBLISHED',
+      
+      // Text search
+      ...(text && {
+        OR: [
+          { name: { contains: text, mode: 'insensitive' } },
+          { description: { contains: text, mode: 'insensitive' } }
+        ]
+      }),
+      
+      // Date range
+      ...(dateStart && { startDate: { gte: dateStart } }),
+      ...(dateEnd && { endDate: { lte: dateEnd } }),
+      
+      // Location
+      ...(city || country) && {
+        venue: {
+          ...(city && { city: { contains: city, mode: 'insensitive' } }),
+          ...(country && { country: { contains: country, mode: 'insensitive' } })
+        }
+      },
+      
+      // Teachers
+      ...(teacherIds && teacherIds.length > 0 && {
+        teachers: {
+          some: {
+            teacherId: { in: teacherIds }
+          }
+        }
+      }),
+      
+      // Musicians
+      ...(musicianIds && musicianIds.length > 0 && {
+        musicians: {
+          some: {
+            musicianId: { in: musicianIds }
+          }
+        }
+      }),
+      
+      // Tags
+      ...(tags && tags.length > 0 && {
+        tags: {
+          some: {
+            tag: { in: tags }
+          }
+        }
+      }),
+      
+      // Price range
+      ...(priceMin || priceMax) && {
+        prices: {
+          some: {
+            ...(priceMin && { amount: { gte: priceMin } }),
+            ...(priceMax && { amount: { lte: priceMax } })
+          }
+        }
+      }
+    },
+    include: {
+      venue: true,
+      prices: {
+        orderBy: { amount: 'asc' }
+      },
+      teachers: {
+        include: { teacher: true }
+      },
+      musicians: {
+        include: { musician: true }
+      },
+      tags: true
+    },
+    orderBy: [
+      { featured: 'desc' },
+      { startDate: 'asc' }
+    ],
+    skip: offset,
+    take: limit
+  })
+}
+
+// ============================================================================
+// FOLLOWING UTILITIES
+// ============================================================================
+
+export async function followEntity(userId: string, targetType: 'TEACHER' | 'MUSICIAN', targetId: string) {
+  // Check if already following
+  const existing = await db.following.findUnique({
+    where: {
+      userId_targetType_targetId: {
+        userId,
+        targetType,
+        targetId
+      }
+    }
+  })
+
+  if (existing) {
+    return existing
+  }
+
+  // Create following relationship
+  const following = await db.following.create({
+    data: {
+      userId,
+      targetType,
+      targetId
+    }
+  })
+
+  // Update follower count
+  if (targetType === 'TEACHER') {
+    await db.teacher.update({
+      where: { id: targetId },
+      data: { followerCount: { increment: 1 } }
+    })
+  } else {
+    await db.musician.update({
+      where: { id: targetId },
+      data: { followerCount: { increment: 1 } }
+    })
+  }
+
+  return following
+}
+
+export async function unfollowEntity(userId: string, targetType: 'TEACHER' | 'MUSICIAN', targetId: string) {
+  const following = await db.following.delete({
+    where: {
+      userId_targetType_targetId: {
+        userId,
+        targetType,
+        targetId
+      }
+    }
+  })
+
+  // Update follower count
+  if (targetType === 'TEACHER') {
+    await db.teacher.update({
+      where: { id: targetId },
+      data: { followerCount: { decrement: 1 } }
+    })
+  } else {
+    await db.musician.update({
+      where: { id: targetId },
+      data: { followerCount: { decrement: 1 } }
+    })
+  }
+
+  return following
+}
+
+export async function getUserFollowing(userId: string) {
+  return await db.following.findMany({
+    where: { userId }
+  })
+}
+
+export async function getPersonalizedEvents(userId: string, limit: number = 20) {
+  // Get user's following
+  const following = await db.following.findMany({
+    where: { userId },
+    select: { targetType: true, targetId: true }
+  })
+
+  const teacherIds = following
+    .filter(f => f.targetType === 'TEACHER')
+    .map(f => f.targetId)
+
+  const musicianIds = following
+    .filter(f => f.targetType === 'MUSICIAN')
+    .map(f => f.targetId)
+
+  if (teacherIds.length === 0 && musicianIds.length === 0) {
+    // No following, return featured events
+    return getUpcomingEvents({ featured: true, limit })
+  }
+
+  // Get events with followed teachers or musicians
+  return await db.event.findMany({
+    where: {
+      status: 'PUBLISHED',
+      startDate: { gte: new Date() },
+      OR: [
+        ...(teacherIds.length > 0 ? [{
+          teachers: {
+            some: {
+              teacherId: { in: teacherIds }
+            }
+          }
+        }] : []),
+        ...(musicianIds.length > 0 ? [{
+          musicians: {
+            some: {
+              musicianId: { in: musicianIds }
+            }
+          }
+        }] : [])
+      ]
+    },
+    include: {
+      venue: true,
+      prices: {
+        orderBy: { amount: 'asc' },
+        take: 1
+      },
+      teachers: {
+        include: { teacher: true }
+      },
+      musicians: {
+        include: { musician: true }
+      }
+    },
+    orderBy: [
+      { startDate: 'asc' }
+    ],
+    take: limit
+  })
+}
+
+// ============================================================================
+// GEOGRAPHIC UTILITIES
+// ============================================================================
+
+export async function getEventsByDistance(
+  latitude: number,
+  longitude: number,
+  radiusKm: number = 100,
+  limit: number = 20
+) {
+  // Using raw SQL for PostGIS distance calculation
+  return await db.$queryRaw`
+    SELECT 
+      e.*,
+      v.*,
+      ST_Distance(
+        ST_Point(v.longitude, v.latitude)::geography,
+        ST_Point(${longitude}, ${latitude})::geography
+      ) / 1000 as distance_km
+    FROM events e
+    JOIN venues v ON e.venue_id = v.id
+    WHERE e.status = 'PUBLISHED'
+      AND e.start_date >= NOW()
+      AND ST_DWithin(
+        ST_Point(v.longitude, v.latitude)::geography,
+        ST_Point(${longitude}, ${latitude})::geography,
+        ${radiusKm * 1000}
+      )
+    ORDER BY distance_km ASC, e.start_date ASC
+    LIMIT ${limit}
+  `
+}
+
+// ============================================================================
+// STATISTICS UTILITIES
+// ============================================================================
+
+export async function getDashboardStats(userId?: string) {
+  const [
+    totalEvents,
+    totalTeachers,
+    totalMusicians,
+    totalVenues,
+    upcomingEvents,
+    userStats
+  ] = await Promise.all([
+    db.event.count({ where: { status: 'PUBLISHED' } }),
+    db.teacher.count(),
+    db.musician.count(),
+    db.venue.count(),
+    db.event.count({
+      where: {
+        status: 'PUBLISHED',
+        startDate: { gte: new Date() }
+      }
+    }),
+    userId ? getUserWithPreferences(userId) : null
+  ])
+
+  return {
+    totalEvents,
+    totalTeachers,
+    totalMusicians,
+    totalVenues,
+    upcomingEvents,
+    user: userStats
+  }
+}
