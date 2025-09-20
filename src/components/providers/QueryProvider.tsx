@@ -1,8 +1,10 @@
 'use client'
 
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
-import { ReactNode, useState } from 'react'
+import { ReactNode, useState, lazy, Suspense } from 'react'
+
+// Dynamically import ReactQueryDevtools to avoid including it in production bundle
+const ReactQueryDevtools = lazy(() => import('@tanstack/react-query-devtools').then(mod => ({ default: mod.ReactQueryDevtools })))
 
 interface QueryProviderProps {
   children: ReactNode
@@ -17,10 +19,10 @@ export function QueryProvider({ children }: QueryProviderProps) {
       queries: {
         // Stale time: how long before data is considered stale
         staleTime: 5 * 60 * 1000, // 5 minutes
-        
+
         // Garbage collection time: how long inactive data stays in cache
         gcTime: 10 * 60 * 1000, // 10 minutes
-        
+
         // Retry configuration
         retry: (failureCount, error: any) => {
           // Don't retry on 4xx errors (except 408, 429)
@@ -30,19 +32,19 @@ export function QueryProvider({ children }: QueryProviderProps) {
             }
             return false
           }
-          
+
           // Retry on network errors and 5xx errors
           return failureCount < 3
         },
-        
+
         // Retry delay with exponential backoff
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
-        
+
         // Refetch configuration
         refetchOnWindowFocus: false,
         refetchOnReconnect: true,
         refetchOnMount: true,
-        
+
         // Network mode
         networkMode: 'online',
       },
@@ -56,14 +58,14 @@ export function QueryProvider({ children }: QueryProviderProps) {
             }
             return false
           }
-          
+
           // Retry on network errors and 5xx errors
           return failureCount < 2
         },
-        
+
         // Mutation retry delay
         retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000),
-        
+
         // Network mode
         networkMode: 'online',
       },
@@ -74,10 +76,12 @@ export function QueryProvider({ children }: QueryProviderProps) {
     <QueryClientProvider client={queryClient}>
       {children}
       {process.env.NODE_ENV === 'development' && (
-        <ReactQueryDevtools 
-          initialIsOpen={false}
-          buttonPosition="bottom-right"
-        />
+        <Suspense fallback={null}>
+          <ReactQueryDevtools
+            initialIsOpen={false}
+            buttonPosition="bottom-right"
+          />
+        </Suspense>
       )}
     </QueryClientProvider>
   )
