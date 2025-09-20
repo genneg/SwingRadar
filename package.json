@@ -53,7 +53,10 @@
     "@prisma/client": "^6.12.0",
     "@tanstack/react-query": "^5.87.1",
     "@tanstack/react-query-devtools": "^5.87.1",
+    "@types/node": "^20.0.0",
     "@types/pg": "^8.15.5",
+    "@types/react": "^18.0.0",
+    "@types/react-dom": "^18.0.0",
     "autoprefixer": "^10.4.0",
     "bcryptjs": "^3.0.2",
     "clsx": "^2.1.1",
@@ -67,6 +70,7 @@
     "react-dom": "^18.0.0",
     "tailwind-merge": "^3.3.1",
     "tailwindcss": "^3.3.0",
+    "typescript": "^5.9.2",
     "zod": "^4.0.5"
   },
   "devDependencies": {
@@ -76,9 +80,6 @@
     "@trivago/prettier-plugin-sort-imports": "^5.2.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/jest": "^30.0.0",
-    "@types/node": "^20.0.0",
-    "@types/react": "^18.0.0",
-    "@types/react-dom": "^18.0.0",
     "@typescript-eslint/eslint-plugin": "^8.42.0",
     "eslint": "^8.0.0",
     "eslint-config-next": "^14.0.0",
@@ -87,7 +88,6 @@
     "jest": "^30.1.2",
     "jest-environment-jsdom": "^30.0.4",
     "lint-staged": "^16.1.6",
-    "prettier": "^3.0.0",
-    "typescript": "^5.9.2"
+    "prettier": "^3.0.0"
   }
 }
