@@ -75,11 +75,11 @@ interface Teacher {
 
 async function getSwingEvents() {
   try {
-    // During build time, skip API calls to avoid localhost errors
+    // Use dynamic import to avoid build-time API calls
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_VERCEL_URL
 
     if (!baseUrl) {
-      // Skip API call during build time
+      // Return empty array during build time
       return []
     }
 
@@ -115,11 +115,11 @@ async function getSwingEvents() {
 
 async function getSwingTeachers() {
   try {
-    // During build time, skip API calls to avoid localhost errors
+    // Use dynamic import to avoid build-time API calls
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_VERCEL_URL
 
     if (!baseUrl) {
-      // Skip API call during build time
+      // Return empty array during build time
       return []
     }
 
