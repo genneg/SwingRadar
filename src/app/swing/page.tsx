@@ -75,7 +75,15 @@ interface Teacher {
 
 async function getSwingEvents() {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/events?limit=6`, {
+    // During build time, skip API calls to avoid localhost errors
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_VERCEL_URL
+
+    if (!baseUrl) {
+      // Skip API call during build time
+      return []
+    }
+
+    const response = await fetch(`${baseUrl}/api/events?limit=6`, {
       next: { revalidate: 3600 } // Revalidate every hour
     })
 
@@ -107,7 +115,15 @@ async function getSwingEvents() {
 
 async function getSwingTeachers() {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/teachers?limit=4`, {
+    // During build time, skip API calls to avoid localhost errors
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_VERCEL_URL
+
+    if (!baseUrl) {
+      // Skip API call during build time
+      return []
+    }
+
+    const response = await fetch(`${baseUrl}/api/teachers?limit=4`, {
       next: { revalidate: 3600 } // Revalidate every hour
     })
 

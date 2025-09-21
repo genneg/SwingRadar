@@ -1,12 +1,12 @@
 generator client {
   provider = "prisma-client-js"
-  output   = "../src/generated"
-  binaryTargets = ["native", "debian-openssl-1.1.x", "debian-openssl-3.0.x", "rhel-openssl-1.0.x", "rhel-openssl-1.1.x", "rhel-openssl-3.0.x", "linux-musl"]
+  binaryTargets = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 model Event {
@@ -87,23 +87,23 @@ model Teacher {
 }
 
 model Musician {
-  id              Int               @id @default(autoincrement())
-  name            String            @db.VarChar(255)
-  slug            String            @unique @db.VarChar(255)
+  id              Int                    @id @default(autoincrement())
+  name            String                 @db.VarChar(255)
+  slug            String                 @unique @db.VarChar(255)
   bio             String?
-  avatar          String?           @db.VarChar(500)
-  verified        Boolean?          @default(false)
+  avatar          String?                @db.VarChar(500)
+  verified        Boolean?               @default(false)
   instruments     String[]
-  music_genres    String[]          @default(["blues"]) // ['blues', 'swing', 'balboa', 'shag', 'boogie', 'jazz', 'rhythm-and-blues']
-  primary_genre   String?           @default("blues") @db.VarChar(50) // Primary music genre
-  performance_types String[]        @default(["live"]) // ['live', 'dj', 'recorded', 'band', 'solo']
+  music_genres    String[]               @default(["blues"]) // ['blues', 'swing', 'balboa', 'shag', 'boogie', 'jazz', 'rhythm-and-blues']
+  primary_genre   String?                @default("blues") @db.VarChar(50) // Primary music genre
+  performance_types String[]              @default(["live"]) // ['live', 'dj', 'recorded', 'band', 'solo']
   yearsActive     Int?
-  website         String?           @db.VarChar(500)
-  email           String?           @db.VarChar(255)
-  followerCount   Int?              @default(0)
-  eventCount      Int?              @default(0)
-  createdAt       DateTime?         @default(now()) @db.Timestamptz(6)
-  updatedAt       DateTime?         @default(now()) @updatedAt @db.Timestamptz(6)
+  website         String?                @db.VarChar(500)
+  email           String?                @db.VarChar(255)
+  followerCount   Int?                   @default(0)
+  eventCount      Int?                   @default(0)
+  createdAt       DateTime?              @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime?              @default(now()) @updatedAt @db.Timestamptz(6)
   image_url       String?
   event_musicians event_musicians[]
   followers       UserFollowMusician[]

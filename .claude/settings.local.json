@@ -3,7 +3,24 @@
     "allow": [
       "Bash(timeout:*)",
       "Bash(npx playwright test:*)",
-      "Bash(git init:*)"
+      "Bash(git init:*)",
+      "Bash(git push:*)",
+      "mcp__vercel__list_deployments",
+      "Bash(git commit:*)",
+      "mcp__vercel__get_deployment_build_logs",
+      "Bash(git add:*)",
+      "Bash(npx prisma migrate:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres.tqvvseagpkmdnsiuwabv:mVVzMkwCK6fP4RG@aws-0-eu-central-1.pooler.supabase.com:5432/postgres\" npx prisma migrate status:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres.tqvvseagpkmdnsiuwabv:mVVzMkwCK6fP4RG@aws-0-eu-central-1.pooler.supabase.com:5432/postgres\" npx prisma migrate deploy)",
+      "Bash(DATABASE_URL=\"postgresql://postgres.tqvvseagpkmdnsiuwabv:mVVzMkwCK6fP4RG@aws-0-eu-central-1.pooler.supabase.com:5432/postgres\" npx prisma db pull)",
+      "Bash(DATABASE_URL=\"postgresql://postgres.tqvvseagpkmdnsiuwabv:mVVzMkwCK6fP4RG@aws-0-eu-central-1.pooler.supabase.com:5432/postgres\" npx prisma migrate dev --name add_teacher_specializations)",
+      "Bash(DATABASE_URL=\"postgresql://postgres.tqvvseagpkmdnsiuwabv:mVVzMkwCK6fP4RG@aws-0-eu-central-1.pooler.supabase.com:5432/postgres\" npx prisma generate)",
+      "Bash(DATABASE_URL=\"postgresql://postgres.tqvvseagpkmdnsiuwabv:mVVzMkwCK6fP4RG@aws-0-eu-central-1.pooler.supabase.com:5432/postgres\" psql:*)",
+      "Bash(DATABASE_URL=\"postgresql://postgres.tqvvseagpkmdnsiuwabv:mVVzMkwCK6fP4RG@aws-0-eu-central-1.pooler.supabase.com:5432/postgres\" npx prisma migrate reset --force)",
+      "Bash(DATABASE_URL=\"postgresql://postgres.tqvvseagpkmdnsiuwabv:mVVzMkwCK6fP4RG@aws-0-eu-central-1.pooler.supabase.com:5432/postgres\" DIRECT_URL=\"postgresql://postgres.tqvvseagpkmdnsiuwabv:mVVzMkwCK6fP4RG@aws-0-eu-central-1.pooler.supabase.com:5432/postgres\" npx prisma migrate reset --force)",
+      "Bash(node:*)",
+      "Bash(npm run build:*)",
+      "Bash(npm install:*)"
     ],
     "deny": [],
     "ask": []
