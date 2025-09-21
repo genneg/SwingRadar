@@ -1,8 +1,6 @@
 'use client'
 
 import { Suspense, useEffect, useState } from 'react'
-import type { Metadata } from 'next'
-import { generateMetadata } from '@/components/seo/SEOMetadata'
 import { EventCard } from '@/components/features/EventCard'
 import { Button } from '@/components/ui/Button'
 import {
@@ -12,25 +10,6 @@ import {
   VintageEventCardSkeleton
 } from '@/components/ui/VintageLoadingStates'
 import { VintageApiError } from '@/hooks/useVintageApi'
-
-export const metadata: Metadata = generateMetadata({
-  title: 'Swing Dance Events - Lindy Hop, East Coast Swing & Charleston Festivals',
-  description: 'Discover the best swing dance events worldwide. Find Lindy Hop festivals, East Coast Swing workshops, and Charleston socials. Your precision radar for authentic swing dance culture.',
-  keywords: [
-    'swing dance events',
-    'lindy hop festivals',
-    'east coast swing',
-    'charleston dance',
-    'swing dance workshops',
-    'swing dance socials',
-    'swing dance competitions',
-    'vintage swing events',
-    'swing radar',
-    'swing dance teachers',
-    'swing dance festivals 2025'
-  ],
-  ogUrl: '/swing'
-})
 
 interface SwingEvent {
   id: string
