@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
   // Disable ESLint during build for deployment
   eslint: {
     ignoreDuringBuilds: true,
